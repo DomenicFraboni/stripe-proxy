@@ -4,29 +4,18 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Explicitly allow all origins with all necessary headers
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "x-stripe-key", "Authorization"],
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
-
-// Handle preflight OPTIONS requests explicitly
+app.use(cors());
 app.options("*", cors());
-
 app.use(express.json());
 
-// Health check
 app.get("/", (req, res) => {
-  res.json({ status: "Stripe proxy is running", version: "2.0" });
+  res.json({ status: "Stripe proxy is running", version: "3.0" });
 });
 
-// Single-page Stripe passthrough
+// Single-page Stripe passthrough — key comes from environment only
 app.get("/stripe/*", async (req, res) => {
-  const stripeKey = process.env.STRIPE_SECRET_KEY || req.headers["x-stripe-key"];
-  if (!stripeKey) return res.status(401).json({ error: "No Stripe key provided." });
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) return res.status(500).json({ error: "STRIPE_SECRET_KEY not set in Railway environment variables. Please add it in Railway → Variables." });
 
   const stripePath = req.params[0];
   const queryString = new URLSearchParams(req.query).toString();
@@ -34,10 +23,7 @@ app.get("/stripe/*", async (req, res) => {
 
   try {
     const response = await fetch(stripeUrl, {
-      headers: {
-        Authorization: `Bearer ${stripeKey}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
+      headers: { Authorization: `Bearer ${stripeKey}` },
     });
     const data = await response.json();
     res.status(response.status).json(data);
@@ -46,10 +32,10 @@ app.get("/stripe/*", async (req, res) => {
   }
 });
 
-// Paginated endpoint — fetches all charges across multiple Stripe pages
+// Paginated endpoint — loops through all Stripe pages automatically
 app.get("/stripe-all/charges", async (req, res) => {
-  const stripeKey = process.env.STRIPE_SECRET_KEY || req.headers["x-stripe-key"];
-  if (!stripeKey) return res.status(401).json({ error: "No Stripe key provided." });
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) return res.status(500).json({ error: "STRIPE_SECRET_KEY not set in Railway environment variables. Please add it in Railway → Variables." });
 
   const maxRecords = Math.min(parseInt(req.query.max_records) || 1000, 25000);
   const createdGte = req.query["created[gte]"];
@@ -68,10 +54,7 @@ app.get("/stripe-all/charges", async (req, res) => {
       if (startingAfter) params.append("starting_after", startingAfter);
 
       const response = await fetch(`https://api.stripe.com/v1/charges?${params}`, {
-        headers: {
-          Authorization: `Bearer ${stripeKey}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+        headers: { Authorization: `Bearer ${stripeKey}` },
       });
 
       const data = await response.json();
@@ -93,5 +76,5 @@ app.get("/stripe-all/charges", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Stripe proxy running on port ${PORT}`);
+  console.log(`Stripe proxy v3.0 running on port ${PORT}`);
 });
