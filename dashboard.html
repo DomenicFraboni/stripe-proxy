@@ -21,25 +21,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 .section-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
-.tab-bar{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid #e5e5e0}
-.tab{padding:8px 18px;font-size:14px;cursor:pointer;border:none;background:transparent;color:#888;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit}
+.tab-bar{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid #e5e5e0;flex-wrap:wrap}
+.tab{padding:8px 16px;font-size:14px;cursor:pointer;border:none;background:transparent;color:#888;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;white-space:nowrap}
 .tab:hover{color:#333}
 .tab.on{color:#185FA5;border-bottom-color:#185FA5;font-weight:500}
 .tc{display:none}.tc.on{display:block}
 .tx-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0ec;font-size:13px}
 .tx-row:last-child{border-bottom:none}
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:600;white-space:nowrap}
-.tag-subscription{background:#dbeafe;color:#1e40af}
-.tag-mobility-foundations{background:#d1fae5;color:#065f46}
-.tag-pelvic-floor{background:#ede9fe;color:#5b21b6}
-.tag-barefoot{background:#fce7f3;color:#9d174d}
-.tag-30-days{background:#ffedd5;color:#9a3412}
-.tag-move2improve{background:#fef9c3;color:#713f12}
-.tag-grateful{background:#f0fdf4;color:#166534}
-.tag-other-course{background:#f3f4f6;color:#374151}
-.tag-refund{background:#fee2e2;color:#991b1b}
-.tag-failed{background:#fef3c7;color:#92400e}
-.tag-other{background:#f3f4f6;color:#374151}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:14px;cursor:pointer;border:1px solid #e5e5e0;background:#fff;color:#333;font-family:inherit}
 .btn:hover{background:#f8f8f5}
 .btn-primary{background:#185FA5;color:#fff;border-color:#185FA5}
@@ -52,14 +41,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 select.input{cursor:pointer}
 .preset-btn{padding:5px 12px;border-radius:6px;border:1px solid #e5e5e0;background:#fff;font-size:13px;cursor:pointer;color:#555;font-family:inherit}
 .preset-btn:hover,.preset-btn.on{background:#185FA5;color:#fff;border-color:#185FA5}
-.filter-btn{padding:5px 12px;border-radius:6px;border:1px solid #e5e5e0;background:#fff;font-size:12px;cursor:pointer;color:#555;font-family:inherit;white-space:nowrap}
+.filter-btn{padding:5px 11px;border-radius:6px;border:1px solid #e5e5e0;background:#fff;font-size:12px;cursor:pointer;color:#555;font-family:inherit;white-space:nowrap}
 .filter-btn:hover{background:#f0f0ec}
 .filter-btn.on{border-color:#185FA5;color:#185FA5;background:#eff6ff;font-weight:500}
 .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:13px}
-.bar-label{min-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#333}
+.bar-label{min-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#333}
 .bar-track{flex:1;background:#f0f0ec;border-radius:4px;height:10px;overflow:hidden}
 .bar-fill{height:100%;border-radius:4px}
-.bar-val{min-width:100px;text-align:right;color:#666;font-size:12px}
+.bar-val{min-width:110px;text-align:right;color:#666;font-size:12px}
 .chip{display:inline-block;padding:5px 12px;border-radius:20px;border:1px solid #e5e5e0;cursor:pointer;font-size:13px;color:#555;background:#fff;margin:0 4px 6px 0;font-family:inherit}
 .chip:hover{background:#f0f0ec}
 .spinner{width:28px;height:28px;border:3px solid #e5e5e0;border-top-color:#185FA5;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
@@ -70,13 +59,11 @@ select.input{cursor:pointer}
 .progress-fill{height:100%;background:#185FA5;border-radius:4px;transition:width .3s ease}
 .ai-box{background:#f8f8f5;border-radius:10px;padding:16px;font-size:14px;line-height:1.7;color:#333}
 .label{display:block;font-size:13px;font-weight:500;color:#555;margin-bottom:6px}
-.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
-.divider{width:1px;height:20px;background:#e5e5e0;margin:0 4px}
 @media(max-width:900px){.grid5{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-
+ 
 <div class="topbar">
   <div style="width:32px;height:32px;background:#185FA5;border-radius:8px;display:flex;align-items:center;justify-content:center">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
@@ -84,9 +71,9 @@ select.input{cursor:pointer}
   <div class="topbar-title">Jen Health — Stripe Dashboard</div>
   <div class="topbar-sub" id="topbar-status">Not connected</div>
 </div>
-
+ 
 <div class="container">
-
+ 
 <!-- CONNECT -->
 <div id="screen-connect" class="screen on">
   <div style="max-width:480px;margin:40px auto">
@@ -126,7 +113,7 @@ select.input{cursor:pointer}
     </div>
   </div>
 </div>
-
+ 
 <!-- LOADING -->
 <div id="screen-loading" class="screen" style="text-align:center;padding:60px 0">
   <div class="spinner" style="margin-bottom:20px"></div>
@@ -140,7 +127,7 @@ select.input{cursor:pointer}
   </div>
   <button class="btn" onclick="cancelFetch()" style="margin-top:24px;font-size:13px">Cancel</button>
 </div>
-
+ 
 <!-- DASHBOARD -->
 <div id="screen-dash" class="screen" style="padding-top:20px">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
@@ -153,9 +140,9 @@ select.input{cursor:pointer}
       <button class="btn" onclick="showConnect()">← Back</button>
     </div>
   </div>
-
+ 
   <div id="truncated-notice" style="display:none" class="info-box"></div>
-
+ 
   <div id="date-picker-inline" style="display:none;margin-bottom:16px">
     <div class="card">
       <div style="font-size:15px;font-weight:600;margin-bottom:12px">Change date range</div>
@@ -187,9 +174,9 @@ select.input{cursor:pointer}
       </div>
     </div>
   </div>
-
+ 
   <div class="grid5" id="metrics-row"></div>
-
+ 
   <div class="tab-bar">
     <button class="tab on" onclick="switchTab(this,'t-overview')">Overview</button>
     <button class="tab" onclick="switchTab(this,'t-transactions')">Transactions</button>
@@ -197,18 +184,18 @@ select.input{cursor:pointer}
     <button class="tab" onclick="switchTab(this,'t-subscriptions')">Subscriptions</button>
     <button class="tab" onclick="switchTab(this,'t-ask')">Ask Claude</button>
   </div>
-
-  <!-- OVERVIEW TAB -->
+ 
+  <!-- OVERVIEW -->
   <div id="t-overview" class="tc on">
     <div class="grid2">
       <div class="card">
         <div class="section-label">Revenue by category</div>
-        <div style="position:relative;height:220px"><canvas id="catChart"></canvas></div>
-        <div id="cat-legend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:12px;color:#666"></div>
+        <div style="position:relative;height:240px"><canvas id="catChart"></canvas></div>
+        <div id="cat-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:12px;color:#666"></div>
       </div>
       <div class="card">
         <div class="section-label">Revenue over time</div>
-        <div style="position:relative;height:220px"><canvas id="timeChart"></canvas></div>
+        <div style="position:relative;height:240px"><canvas id="timeChart"></canvas></div>
       </div>
     </div>
     <div class="card">
@@ -216,13 +203,12 @@ select.input{cursor:pointer}
       <div id="ai-summary" class="ai-box">Generating analysis...</div>
     </div>
   </div>
-
-  <!-- TRANSACTIONS TAB -->
+ 
+  <!-- TRANSACTIONS -->
   <div id="t-transactions" class="tc">
     <div class="card">
-      <!-- Status filters -->
       <div style="margin-bottom:12px">
-        <div style="font-size:12px;font-weight:500;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Payment status</div>
+        <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Payment status</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px">
           <button class="filter-btn on" id="sf-all" onclick="setStatusFilter('all',this)">All statuses</button>
           <button class="filter-btn" id="sf-succeeded" onclick="setStatusFilter('succeeded',this)">✓ Successful</button>
@@ -230,23 +216,10 @@ select.input{cursor:pointer}
           <button class="filter-btn" id="sf-refunded" onclick="setStatusFilter('refunded',this)">↩ Refunded</button>
         </div>
       </div>
-      <!-- Category filters -->
       <div style="margin-bottom:14px">
-        <div style="font-size:12px;font-weight:500;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Category</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px">
-          <button class="filter-btn on" id="cf-all" onclick="setCatFilter('all',this)">All categories</button>
-          <button class="filter-btn" id="cf-subscription" onclick="setCatFilter('subscription',this)">Subscriptions</button>
-          <button class="filter-btn" id="cf-mobility-foundations" onclick="setCatFilter('mobility-foundations',this)">Mobility Foundations</button>
-          <button class="filter-btn" id="cf-pelvic-floor" onclick="setCatFilter('pelvic-floor',this)">Pelvic Floor Foundations</button>
-          <button class="filter-btn" id="cf-barefoot" onclick="setCatFilter('barefoot',this)">Barefoot Mini Course</button>
-          <button class="filter-btn" id="cf-30-days" onclick="setCatFilter('30-days',this)">30 Days Programs</button>
-          <button class="filter-btn" id="cf-move2improve" onclick="setCatFilter('move2improve',this)">Move 2 Improve</button>
-          <button class="filter-btn" id="cf-grateful" onclick="setCatFilter('grateful',this)">Grateful for My Body</button>
-          <button class="filter-btn" id="cf-other-course" onclick="setCatFilter('other-course',this)">Other Courses</button>
-          <button class="filter-btn" id="cf-other" onclick="setCatFilter('other',this)">Other</button>
-        </div>
+        <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Category</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px" id="cat-filter-buttons"></div>
       </div>
-      <!-- Search + download row -->
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
         <input id="filter-q" oninput="renderTx()" placeholder="Search email or description..." class="input" style="flex:1;min-width:200px"/>
         <div id="tx-count" style="font-size:13px;color:#888;white-space:nowrap"></div>
@@ -261,27 +234,27 @@ select.input{cursor:pointer}
       </div>
     </div>
   </div>
-
-  <!-- COURSES TAB -->
+ 
+  <!-- COURSES -->
   <div id="t-courses" class="tc">
     <div class="grid2">
       <div class="card">
         <div class="section-label">Course revenue breakdown</div>
-        <div style="position:relative;height:260px"><canvas id="courseChart"></canvas></div>
-        <div id="course-legend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:12px;color:#666"></div>
+        <div style="position:relative;height:280px"><canvas id="courseChart"></canvas></div>
+        <div id="course-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:12px;color:#666"></div>
       </div>
       <div class="card">
         <div class="section-label">Units sold by course</div>
-        <div style="position:relative;height:260px"><canvas id="courseUnitsChart"></canvas></div>
+        <div style="position:relative;height:280px"><canvas id="courseUnitsChart"></canvas></div>
       </div>
     </div>
     <div class="card">
-      <div class="section-label">Course performance</div>
+      <div class="section-label">Course performance — revenue &amp; units sold</div>
       <div id="course-bars"></div>
     </div>
   </div>
-
-  <!-- SUBSCRIPTIONS TAB -->
+ 
+  <!-- SUBSCRIPTIONS -->
   <div id="t-subscriptions" class="tc">
     <div class="grid2">
       <div class="card">
@@ -289,9 +262,9 @@ select.input{cursor:pointer}
         <div style="position:relative;height:220px"><canvas id="subTimeChart"></canvas></div>
       </div>
       <div class="card">
-        <div class="section-label">Subscription types</div>
+        <div class="section-label">Subscription type breakdown</div>
         <div style="position:relative;height:220px"><canvas id="subTypeChart"></canvas></div>
-        <div id="sub-legend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:12px;color:#666"></div>
+        <div id="sub-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:12px;color:#666"></div>
       </div>
     </div>
     <div class="card">
@@ -299,17 +272,17 @@ select.input{cursor:pointer}
       <div id="sub-bars"></div>
     </div>
   </div>
-
-  <!-- ASK TAB -->
+ 
+  <!-- ASK -->
   <div id="t-ask" class="tc">
     <div class="card">
       <div style="font-size:14px;color:#888;margin-bottom:12px">Ask any question about your payment data for the selected period.</div>
       <div style="margin-bottom:14px">
-        <button class="chip" onclick="ask('Which course generated the most revenue?')">Top course</button>
-        <button class="chip" onclick="ask('How many subscriptions are active vs new this period?')">Subscription breakdown</button>
-        <button class="chip" onclick="ask('Which course had the most units sold?')">Most popular course</button>
+        <button class="chip" onclick="ask('Which course generated the most revenue?')">Top course by revenue</button>
+        <button class="chip" onclick="ask('Which course sold the most units?')">Most popular course</button>
+        <button class="chip" onclick="ask('How do subscriptions compare to course sales?')">Subs vs courses</button>
         <button class="chip" onclick="ask('Are there failed payments I should follow up on?')">Failed payments</button>
-        <button class="chip" onclick="ask('What is my refund rate?')">Refund rate</button>
+        <button class="chip" onclick="ask('What is my refund rate and total refunded?')">Refund rate</button>
         <button class="chip" onclick="ask('What is the revenue trend over time?')">Revenue trend</button>
       </div>
       <div style="display:flex;gap:10px">
@@ -319,93 +292,172 @@ select.input{cursor:pointer}
       <div id="ask-out" style="margin-top:16px"></div>
     </div>
   </div>
-
+ 
 </div>
 </div>
-
+ 
 <script>
 const PROXY = '';
 let payments = [], txPage = 0, currentFiltered = [];
-let catChart, timeChart, courseChart, courseUnitsChart, subTimeChart, subTypeChart, newrenChart;
+let catChart, timeChart, courseChart, courseUnitsChart, subTimeChart, subTypeChart;
 let fetchCancelled = false;
 let activeStatusFilter = 'all';
 let activeCatFilter = 'all';
-
-// ── Product categorization ───────────────────────────────────────────────────
+ 
+// ── Complete product catalog ─────────────────────────────────────────────────
 const COURSE_RULES = [
-  { key: 'mobility-foundations', label: 'Mobility Foundations',
-    keywords: ['mobility foundation','mobility found'],
-    amounts: [69,79,85,89,99] },
-  { key: 'pelvic-floor', label: 'Pelvic Floor Foundations',
-    keywords: ['pelvic floor','pelvic found'],
-    amounts: [45,55,65] },
-  { key: 'barefoot', label: 'Barefoot Mini Course',
+  {
+    key: 'lifting-for-longevity',
+    label: 'Lifting for Longevity',
+    color: '#0369a1',
+    keywords: ['lifting for longevity','lifting for long'],
+    amounts: new Set([65,75,85,95,99])
+  },
+  {
+    key: 'strong-healthy-joints',
+    label: 'Strong Healthy Joints',
+    color: '#0f766e',
+    keywords: ['strong healthy joints','strong, healthy joints'],
+    amounts: new Set([49,59,69,79])
+  },
+  {
+    key: 'posture-redefined',
+    label: 'Posture Redefined',
+    color: '#7c3aed',
+    keywords: ['posture redefined'],
+    amounts: new Set([69,89])
+  },
+  {
+    key: 'mobility-foundations',
+    label: 'Mobility Foundations',
+    color: '#065f46',
+    keywords: ['mobility foundation'],
+    amounts: new Set([69,79,85,89,99])
+  },
+  {
+    key: 'pelvic-floor',
+    label: 'Pelvic Floor Foundations',
+    color: '#9d174d',
+    keywords: ['pelvic floor'],
+    amounts: new Set([45,55,65])
+  },
+  {
+    key: 'barefoot',
+    label: 'Barefoot Mini Course',
+    color: '#92400e',
     keywords: ['barefoot'],
-    amounts: [30,39,65] },
-  { key: '30-days', label: '30 Days Programs',
-    keywords: ['30 day','release and recovery','strength and mobility'],
-    amounts: [59,89] },
-  { key: 'move2improve', label: 'Move 2 Improve',
+    amounts: new Set([30,39,45,55,65])
+  },
+  {
+    key: '30-days-release',
+    label: '30 Days of Release and Recovery',
+    color: '#b45309',
+    keywords: ['30 days of release','release and recovery'],
+    amounts: new Set([59,69,79,89])
+  },
+  {
+    key: '30-days-strength',
+    label: '30 Days of Strength and Mobility',
+    color: '#d97706',
+    keywords: ['30 days of strength','strength and mobility'],
+    amounts: new Set([89])
+  },
+  {
+    key: 'move2improve',
+    label: 'Move 2 Improve',
+    color: '#166534',
     keywords: ['move 2 improve','move2improve','m2i'],
-    amounts: [36,45,60] },
-  { key: 'grateful', label: 'Grateful for My Body',
-    keywords: ['grateful'],
-    amounts: [45,60] },
+    amounts: new Set([36,45,49,59,60,79])
+  },
+  {
+    key: 'grateful',
+    label: 'Grateful for My Body',
+    color: '#4338ca',
+    keywords: ['grateful for my body','grateful for my'],
+    amounts: new Set([45,60])
+  },
 ];
-
-const SUBSCRIPTION_AMOUNTS = new Set([
-  15,19.99,24.99,27,
-  119.95,119.99,129.99,149.99,159.99,161.99,162,179.99,215,275,
-  45.50,53.40
+ 
+const COURSE_KEYS = COURSE_RULES.map(r => r.key);
+ 
+// Subscription amount set — all known recurring price points
+const SUB_AMOUNTS = new Set([
+  1, 15, 19.99, 24.99, 27,
+  119.95, 119.99, 129.99, 149.99,
+  159.99, 161.99, 162, 179.99,
+  200, 215, 275
 ]);
-
-const SUBSCRIPTION_KEYWORDS = [
-  'membership','subscribe','subscription','annual','monthly','optimal body','jen annual','jen monthly','optimal-body'
+ 
+const SUB_KEYWORDS = [
+  'membership','subscribe','subscription','annual','monthly',
+  'optimal body','optimal-body','jen annual','jen monthly',
+  'the-optimal-body','optimal_body'
 ];
-
+ 
+const CATEGORY_META = {
+  subscription: { label: 'Subscription', color: '#185FA5' },
+  'lifting-for-longevity': { label: 'Lifting for Longevity', color: '#0369a1' },
+  'strong-healthy-joints': { label: 'Strong Healthy Joints', color: '#0f766e' },
+  'posture-redefined': { label: 'Posture Redefined', color: '#7c3aed' },
+  'mobility-foundations': { label: 'Mobility Foundations', color: '#065f46' },
+  'pelvic-floor': { label: 'Pelvic Floor Foundations', color: '#9d174d' },
+  'barefoot': { label: 'Barefoot Mini Course', color: '#92400e' },
+  '30-days-release': { label: '30 Days of Release & Recovery', color: '#b45309' },
+  '30-days-strength': { label: '30 Days of Strength & Mobility', color: '#d97706' },
+  'move2improve': { label: 'Move 2 Improve', color: '#166534' },
+  'grateful': { label: 'Grateful for My Body', color: '#4338ca' },
+  'other-course': { label: 'Other Course', color: '#374151' },
+  refund: { label: 'Refund', color: '#991b1b' },
+  failed: { label: 'Failed', color: '#92400e' },
+  other: { label: 'Other', color: '#9ca3af' },
+};
+ 
 function categorizePayment(p) {
   if (p.status === 'refunded') return 'refund';
   if (p.status === 'failed') return 'failed';
-
   const desc = (p.description || '').toLowerCase();
   const amt = p.amount;
-
-  // Check subscription keywords first
-  if (SUBSCRIPTION_KEYWORDS.some(k => desc.includes(k))) return 'subscription';
-  if (p.hasInvoice && SUBSCRIPTION_AMOUNTS.has(amt)) return 'subscription';
-
-  // Check each course
+ 
+  // Subscription keywords take highest priority
+  if (SUB_KEYWORDS.some(k => desc.includes(k))) return 'subscription';
+ 
+  // Check each named course by keyword first, then by amount
   for (const rule of COURSE_RULES) {
     if (rule.keywords.some(k => desc.includes(k))) return rule.key;
-    if (rule.amounts.includes(amt) && !SUBSCRIPTION_AMOUNTS.has(amt)) return rule.key;
   }
-
+ 
+  // Amount-based course matching (only if not a known sub amount)
+  if (!SUB_AMOUNTS.has(amt)) {
+    for (const rule of COURSE_RULES) {
+      if (rule.amounts.has(amt)) return rule.key;
+    }
+  }
+ 
   // Generic course fallback
   if (['course','class','workshop','program','challenge','training','certificate'].some(k => desc.includes(k))) {
     return 'other-course';
   }
-
-  if (SUBSCRIPTION_AMOUNTS.has(amt) && p.hasInvoice) return 'subscription';
-
+ 
+  // Subscription by amount + invoice
+  if (SUB_AMOUNTS.has(amt) && p.hasInvoice) return 'subscription';
+ 
   return 'other';
 }
-
-const CATEGORY_META = {
-  'subscription':          { label: 'Subscription',           color: '#185FA5', tagClass: 'tag-subscription' },
-  'mobility-foundations':  { label: 'Mobility Foundations',   color: '#065f46', tagClass: 'tag-mobility-foundations' },
-  'pelvic-floor':          { label: 'Pelvic Floor Foundations',color: '#5b21b6', tagClass: 'tag-pelvic-floor' },
-  'barefoot':              { label: 'Barefoot Mini Course',    color: '#9d174d', tagClass: 'tag-barefoot' },
-  '30-days':               { label: '30 Days Programs',        color: '#9a3412', tagClass: 'tag-30-days' },
-  'move2improve':          { label: 'Move 2 Improve',          color: '#713f12', tagClass: 'tag-move2improve' },
-  'grateful':              { label: 'Grateful for My Body',    color: '#166534', tagClass: 'tag-grateful' },
-  'other-course':          { label: 'Other Course',            color: '#374151', tagClass: 'tag-other-course' },
-  'refund':                { label: 'Refund',                  color: '#991b1b', tagClass: 'tag-refund' },
-  'failed':                { label: 'Failed',                  color: '#92400e', tagClass: 'tag-failed' },
-  'other':                 { label: 'Other',                   color: '#888',    tagClass: 'tag-other' },
-};
-
-const COURSE_KEYS = ['mobility-foundations','pelvic-floor','barefoot','30-days','move2improve','grateful','other-course'];
-
+ 
+// Build category filter buttons dynamically
+function buildCatFilterButtons() {
+  const allCats = [
+    { key: 'all', label: 'All categories' },
+    { key: 'subscription', label: 'Subscriptions' },
+    ...COURSE_RULES.map(r => ({ key: r.key, label: r.label })),
+    { key: 'other-course', label: 'Other Course' },
+    { key: 'other', label: 'Other' },
+  ];
+  document.getElementById('cat-filter-buttons').innerHTML = allCats.map(c =>
+    `<button class="filter-btn${c.key==='all'?' on':''}" id="cf-${c.key}" onclick="setCatFilter('${c.key}',this)">${c.label}</button>`
+  ).join('');
+}
+ 
 // ── Utilities ────────────────────────────────────────────────────────────────
 function today() { return new Date().toISOString().split('T')[0]; }
 function daysAgo(n) { const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().split('T')[0]; }
@@ -416,31 +468,20 @@ function show(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.
 function switchTab(el,id) { document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on')); document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on')); el.classList.add('on'); document.getElementById(id).classList.add('on'); }
 function showConnect() { show('screen-connect'); }
 function cancelFetch() { fetchCancelled=true; show('screen-connect'); }
-function setProgress(loaded,max) { const pct=max>0?Math.min(Math.round(loaded/max*100),99):0; document.getElementById('progress').style.width=pct+'%'; document.getElementById('progress-label').textContent=loaded.toLocaleString()+' loaded'; document.getElementById('progress-pct').textContent=pct+'%'; }
-
+function setProgress(l,m) { const p=m>0?Math.min(Math.round(l/m*100),99):0; document.getElementById('progress').style.width=p+'%'; document.getElementById('progress-label').textContent=l.toLocaleString()+' loaded'; document.getElementById('progress-pct').textContent=p+'%'; }
 function setPreset(days,el) { document.querySelectorAll('#screen-connect .preset-btn').forEach(b=>b.classList.remove('on')); el.classList.add('on'); if(days==='custom')return; document.getElementById('date-from').value=daysAgo(days); document.getElementById('date-to').value=today(); }
 function setPreset2(days,el) { document.querySelectorAll('#date-picker-inline .preset-btn').forEach(b=>b.classList.remove('on')); el.classList.add('on'); document.getElementById('date-from2').value=daysAgo(days); document.getElementById('date-to2').value=today(); }
-
+ 
 document.getElementById('date-from').value = daysAgo(30);
 document.getElementById('date-to').value = today();
-
+buildCatFilterButtons();
+ 
 function showDatePicker() { const dp=document.getElementById('date-picker-inline'); dp.style.display=dp.style.display==='none'?'block':'none'; document.getElementById('date-from2').value=document.getElementById('date-from').value; document.getElementById('date-to2').value=document.getElementById('date-to').value; }
 async function refetch() { document.getElementById('date-from').value=document.getElementById('date-from2').value; document.getElementById('date-to').value=document.getElementById('date-to2').value; document.getElementById('pay-limit').value=document.getElementById('pay-limit2').value; document.getElementById('date-picker-inline').style.display='none'; await fetchAndRender(); }
-
-// ── Status + Category filters ────────────────────────────────────────────────
-function setStatusFilter(val, el) {
-  activeStatusFilter = val;
-  document.querySelectorAll('[id^="sf-"]').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  renderTx();
-}
-function setCatFilter(val, el) {
-  activeCatFilter = val;
-  document.querySelectorAll('[id^="cf-"]').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  renderTx();
-}
-
+ 
+function setStatusFilter(val,el) { activeStatusFilter=val; document.querySelectorAll('[id^="sf-"]').forEach(b=>b.classList.remove('on')); el.classList.add('on'); renderTx(); }
+function setCatFilter(val,el) { activeCatFilter=val; document.querySelectorAll('[id^="cf-"]').forEach(b=>b.classList.remove('on')); el.classList.add('on'); renderTx(); }
+ 
 // ── Connect / Fetch ──────────────────────────────────────────────────────────
 async function connect() {
   const from=document.getElementById('date-from').value, to=document.getElementById('date-to').value;
@@ -449,84 +490,90 @@ async function connect() {
   if(new Date(from)>new Date(to)){errEl.innerHTML='<div class="error-box">Start date must be before end date.</div>';errEl.style.display='block';return;}
   await fetchAndRender();
 }
-
+ 
 async function fetchAndRender() {
   const from=document.getElementById('date-from').value, to=document.getElementById('date-to').value;
   const maxRecords=parseInt(document.getElementById('pay-limit').value);
   fetchCancelled=false;
   document.getElementById('load-msg').textContent='Fetching transactions from Stripe...';
   document.getElementById('load-detail').textContent=from+' → '+to;
-  setProgress(0,maxRecords);
-  show('screen-loading');
+  setProgress(0,maxRecords); show('screen-loading');
   document.getElementById('topbar-status').textContent='Loading...';
-
-  const allCharges=[]; let startingAfter=null,hasMore=true,errorMsg=null;
+ 
+  const allCharges=[]; let startingAfter=null, hasMore=true, errorMsg=null;
   try {
-    while(hasMore&&allCharges.length<maxRecords&&!fetchCancelled){
+    while(hasMore&&allCharges.length<maxRecords&&!fetchCancelled) {
       const params=new URLSearchParams({'created[gte]':toUnix(from),'created[lte]':toEndUnix(to)});
-      if(startingAfter)params.append('starting_after',startingAfter);
+      if(startingAfter) params.append('starting_after',startingAfter);
       const r=await fetch(`${PROXY}/charges?${params}`);
       if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Server error '+r.status);}
       const data=await r.json();
-      if(data.error)throw new Error(data.error);
+      if(data.error) throw new Error(data.error);
       const batch=data.data||[];
       allCharges.push(...batch);
       hasMore=data.has_more;
       startingAfter=batch.length>0?batch[batch.length-1].id:null;
-      if(!startingAfter)hasMore=false;
+      if(!startingAfter) hasMore=false;
       setProgress(allCharges.length,maxRecords);
       document.getElementById('load-detail').textContent=allCharges.length.toLocaleString()+' transactions loaded...';
     }
   } catch(e){errorMsg=e.message;}
-
-  if(fetchCancelled)return;
-  if(errorMsg){show('screen-connect');const errEl=document.getElementById('connect-error');errEl.innerHTML=`<div class="error-box"><strong>Error:</strong> ${errorMsg}</div>`;errEl.style.display='block';document.getElementById('topbar-status').textContent='Error';return;}
-
+ 
+  if(fetchCancelled) return;
+  if(errorMsg) {
+    show('screen-connect');
+    const errEl=document.getElementById('connect-error');
+    errEl.innerHTML=`<div class="error-box"><strong>Error:</strong> ${errorMsg}</div>`;
+    errEl.style.display='block';
+    document.getElementById('topbar-status').textContent='Error';
+    return;
+  }
+ 
   document.getElementById('load-msg').textContent='Categorizing payments...';
   document.getElementById('load-detail').textContent=allCharges.length.toLocaleString()+' transactions found';
-
+ 
   payments = allCharges.map(c=>({
-    id:c.id, amount:c.amount/100,
-    currency:(c.currency||'usd').toUpperCase(),
-    status:c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
-    description:c.description||c.statement_descriptor||'',
-    email:c.customer?.email||c.billing_details?.email||c.receipt_email||'',
-    date:new Date(c.created*1000),
-    hasInvoice:!!(c.invoice),
-    category:'other'
+    id: c.id, amount: c.amount/100,
+    currency: (c.currency||'usd').toUpperCase(),
+    status: c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
+    description: c.description||c.statement_descriptor||'',
+    email: c.customer?.email||c.billing_details?.email||c.receipt_email||'',
+    date: new Date(c.created*1000),
+    hasInvoice: !!(c.invoice),
+    category: 'other'
   }));
-  payments.forEach(p=>{ p.category=categorizePayment(p); });
-
-  renderDashboard(from,to,allCharges.length,hasMore&&allCharges.length>=maxRecords);
+  payments.forEach(p => { p.category = categorizePayment(p); });
+ 
+  renderDashboard(from, to, allCharges.length, hasMore&&allCharges.length>=maxRecords);
   show('screen-dash');
 }
-
-// ── Render Dashboard ─────────────────────────────────────────────────────────
-function renderDashboard(from,to,total,truncated){
-  const paid=payments.filter(p=>p.status==='succeeded');
-  const refunds=payments.filter(p=>p.status==='refunded');
-  const failed=payments.filter(p=>p.status==='failed');
-  const subs=payments.filter(p=>p.category==='subscription'&&p.status==='succeeded');
-  const courses=payments.filter(p=>COURSE_KEYS.includes(p.category)&&p.status==='succeeded');
-  const netRev=paid.reduce((s,p)=>s+p.amount,0)-refunds.reduce((s,p)=>s+p.amount,0);
-  const refundAmt=refunds.reduce((s,p)=>s+p.amount,0);
-
+ 
+// ── Dashboard render ─────────────────────────────────────────────────────────
+function renderDashboard(from, to, total, truncated) {
+  const paid = payments.filter(p=>p.status==='succeeded');
+  const refunds = payments.filter(p=>p.status==='refunded');
+  const failed = payments.filter(p=>p.status==='failed');
+  const subs = payments.filter(p=>p.category==='subscription'&&p.status==='succeeded');
+  const courses = payments.filter(p=>COURSE_KEYS.includes(p.category)&&p.status==='succeeded');
+  const netRev = paid.reduce((s,p)=>s+p.amount,0) - refunds.reduce((s,p)=>s+p.amount,0);
+  const refundAmt = refunds.reduce((s,p)=>s+p.amount,0);
+ 
   const ff=new Date(from+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   const tf=new Date(to+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   document.getElementById('dash-subtitle').textContent=`${ff} – ${tf}  ·  ${total.toLocaleString()} transactions`;
   document.getElementById('topbar-status').textContent=`${ff} – ${tf}`;
-
+ 
   const n=document.getElementById('truncated-notice');
   if(truncated){n.textContent='Your date range has more than '+parseInt(document.getElementById('pay-limit').value).toLocaleString()+' transactions. Increase the limit or narrow your range.';n.style.display='block';}
   else n.style.display='none';
-
+ 
   document.getElementById('metrics-row').innerHTML=`
     <div class="metric"><div class="metric-label">Net revenue</div><div class="metric-value">${fmt(netRev)}</div><div class="metric-sub">${fmt(refundAmt)} refunded</div></div>
     <div class="metric"><div class="metric-label">Successful</div><div class="metric-value">${paid.length.toLocaleString()}</div><div class="metric-sub">${fmt(paid.reduce((s,p)=>s+p.amount,0))}</div></div>
     <div class="metric"><div class="metric-label">Failed</div><div class="metric-value" style="color:#92400e">${failed.length.toLocaleString()}</div><div class="metric-sub">not collected</div></div>
     <div class="metric"><div class="metric-label">Subscriptions</div><div class="metric-value">${subs.length.toLocaleString()}</div><div class="metric-sub">${fmt(subs.reduce((s,p)=>s+p.amount,0))}</div></div>
     <div class="metric"><div class="metric-label">Course sales</div><div class="metric-value">${courses.length.toLocaleString()}</div><div class="metric-sub">${fmt(courses.reduce((s,p)=>s+p.amount,0))}</div></div>`;
-
+ 
   renderCatChart(paid);
   renderTimeChart(paid,from,to);
   renderCourseCharts(courses);
@@ -534,13 +581,15 @@ function renderDashboard(from,to,total,truncated){
   txPage=0; renderTx();
   generateSummary(paid,subs,courses,failed,refunds,netRev,from,to);
 }
-
-function renderCatChart(paid){
-  const groups={subscription:0};
+ 
+function renderCatChart(paid) {
+  const groups={subscription:0,'other-course':0,other:0};
   COURSE_KEYS.forEach(k=>groups[k]=0);
-  groups.other=0;
-  paid.forEach(p=>{ if(groups[p.category]!==undefined)groups[p.category]+=p.amount; else groups.other+=p.amount; });
-  const entries=Object.entries(groups).filter(([,v])=>v>0);
+  paid.forEach(p=>{
+    if(groups[p.category]!==undefined) groups[p.category]+=p.amount;
+    else groups.other+=p.amount;
+  });
+  const entries=Object.entries(groups).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
   if(catChart)catChart.destroy();
   catChart=new Chart(document.getElementById('catChart'),{
     type:'doughnut',
@@ -548,10 +597,10 @@ function renderCatChart(paid){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
   });
   const total=entries.reduce((s,[,v])=>s+v,0);
-  document.getElementById('cat-legend').innerHTML=entries.map(([k,v])=>`<span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:${CATEGORY_META[k]?.color||'#888'};display:inline-block"></span>${CATEGORY_META[k]?.label||k} ${total>0?Math.round(v/total*100)+'%':''}</span>`).join('');
+  document.getElementById('cat-legend').innerHTML=entries.map(([k,v])=>`<span style="display:flex;align-items:center;gap:4px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:3px;background:${CATEGORY_META[k]?.color||'#888'};flex-shrink:0;display:inline-block"></span>${CATEGORY_META[k]?.label||k} ${total>0?Math.round(v/total*100)+'%':''}</span>`).join('');
 }
-
-function renderTimeChart(paid,from,to){
+ 
+function renderTimeChart(paid,from,to) {
   const days=(new Date(to)-new Date(from))/(1000*60*60*24);
   const useMonth=days>60;
   const byPeriod={};
@@ -564,13 +613,13 @@ function renderTimeChart(paid,from,to){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11},maxTicksLimit:10}},y:{grid:{color:'#f0f0ec'},ticks:{font:{size:11},callback:v=>'$'+v.toLocaleString()}}}}
   });
 }
-
-function renderCourseCharts(courses){
+ 
+function renderCourseCharts(courses) {
   const byKey={};
   COURSE_KEYS.forEach(k=>byKey[k]={rev:0,count:0});
   courses.forEach(p=>{if(byKey[p.category]){byKey[p.category].rev+=p.amount;byKey[p.category].count++;}});
-  const entries=Object.entries(byKey).filter(([,v])=>v.rev>0);
-
+  const entries=Object.entries(byKey).filter(([,v])=>v.rev>0).sort((a,b)=>b[1].rev-a[1].rev);
+ 
   if(courseChart)courseChart.destroy();
   courseChart=new Chart(document.getElementById('courseChart'),{
     type:'doughnut',
@@ -578,56 +627,60 @@ function renderCourseCharts(courses){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
   });
   const total=entries.reduce((s,[,v])=>s+v.rev,0);
-  document.getElementById('course-legend').innerHTML=entries.map(([k,v])=>`<span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:${CATEGORY_META[k]?.color||'#888'};display:inline-block"></span>${CATEGORY_META[k]?.label||k} ${total>0?Math.round(v.rev/total*100)+'%':''}</span>`).join('');
-
+  document.getElementById('course-legend').innerHTML=entries.map(([k,v])=>`<span style="display:flex;align-items:center;gap:4px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:3px;background:${CATEGORY_META[k]?.color||'#888'};flex-shrink:0;display:inline-block"></span>${CATEGORY_META[k]?.label||k} ${total>0?Math.round(v.rev/total*100)+'%':''}</span>`).join('');
+ 
   if(courseUnitsChart)courseUnitsChart.destroy();
+  const unitHeight=Math.max(entries.length*42+60,200);
+  document.getElementById('courseUnitsChart').parentElement.style.height=unitHeight+'px';
   courseUnitsChart=new Chart(document.getElementById('courseUnitsChart'),{
     type:'bar',
     data:{labels:entries.map(([k])=>CATEGORY_META[k]?.label||k),datasets:[{data:entries.map(([,v])=>v.count),backgroundColor:entries.map(([k])=>CATEGORY_META[k]?.color||'#888'),borderRadius:6,borderSkipped:false}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'#f0f0ec'},ticks:{font:{size:11}}},y:{grid:{display:false},ticks:{font:{size:11}}}}}
   });
-
+ 
   const maxRev=Math.max(...entries.map(([,v])=>v.rev),1);
-  document.getElementById('course-bars').innerHTML=entries.sort((a,b)=>b[1].rev-a[1].rev).map(([k,v])=>`
+  document.getElementById('course-bars').innerHTML=entries.map(([k,v])=>`
     <div class="bar-row">
       <div class="bar-label">${CATEGORY_META[k]?.label||k}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v.rev/maxRev*100)}%;background:${CATEGORY_META[k]?.color||'#888'}"></div></div>
       <div class="bar-val">${fmt(v.rev)} · ${v.count.toLocaleString()} sold</div>
     </div>`).join('');
 }
-
-function renderSubCharts(subs,from,to){
+ 
+function renderSubCharts(subs,from,to) {
   const days=(new Date(to)-new Date(from))/(1000*60*60*24);
   const useMonth=days>60;
   const byPeriod={};
   subs.forEach(p=>{const k=useMonth?p.date.toLocaleDateString('en-US',{month:'short',year:'2-digit'}):p.date.toLocaleDateString('en-US',{month:'short',day:'numeric'});byPeriod[k]=(byPeriod[k]||0)+p.amount;});
   const sorted=Object.entries(byPeriod);
-
+ 
   if(subTimeChart)subTimeChart.destroy();
   subTimeChart=new Chart(document.getElementById('subTimeChart'),{
     type:'line',
     data:{labels:sorted.map(e=>e[0]),datasets:[{data:sorted.map(e=>Math.round(e[1]*100)/100),borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,.08)',fill:true,tension:.3,pointRadius:sorted.length>30?0:3}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11},maxTicksLimit:10}},y:{grid:{color:'#f0f0ec'},ticks:{font:{size:11},callback:v=>'$'+v.toLocaleString()}}}}
   });
-
-  // Group by amount tier to infer product
+ 
+  // Group by inferred product tier
+  const tierFn = amt => {
+    if(amt===24.99) return 'Jen Monthly Membership ($24.99/mo)';
+    if(amt===19.99) return 'Optimal Body Monthly ($19.99/mo)';
+    if(amt===27) return 'Optimal Body Monthly ($27/mo)';
+    if(amt===15) return 'Optimal Body Monthly ($15/mo)';
+    if(amt===1) return 'Trial / Test ($1)';
+    if([119.95,119.99,129.99,149.99,159.99].includes(amt)) return 'Jen Annual Membership';
+    if([161.99,162].includes(amt)) return 'Optimal Body Annual (15% off)';
+    if(amt===179.99) return 'Jen Annual Membership ($179.99)';
+    if(amt===200) return 'Optimal Body Annual (course, $200)';
+    if(amt===215) return 'Annual Membership ($215)';
+    if(amt===275) return 'Optimal Body Annual ($275)';
+    return 'Other subscription';
+  };
   const tiers={};
-  subs.forEach(p=>{
-    let tier='Other';
-    if(p.amount===24.99)tier='Jen Monthly ($24.99)';
-    else if(p.amount===19.99)tier='Optimal Body Monthly ($19.99)';
-    else if(p.amount===27)tier='Optimal Body Monthly ($27)';
-    else if(p.amount===15)tier='Optimal Body Monthly ($15)';
-    else if([119.95,119.99,129.99,149.99,159.99,161.99,162,179.99].includes(p.amount))tier='Jen Annual Membership';
-    else if(p.amount===215)tier='Annual Premium ($215)';
-    else if(p.amount===275)tier='Annual Premium ($275)';
-    else if([45.50,53.40].includes(p.amount))tier='Membership (discounted)';
-    if(!tiers[tier])tiers[tier]={rev:0,count:0};
-    tiers[tier].rev+=p.amount;tiers[tier].count++;
-  });
-  const tierColors=['#185FA5','#378ADD','#85B7EB','#3B6D11','#97C459','#534AB7','#854F0B','#888780'];
+  subs.forEach(p=>{const t=tierFn(p.amount);if(!tiers[t])tiers[t]={rev:0,count:0};tiers[t].rev+=p.amount;tiers[t].count++;});
+  const tierColors=['#185FA5','#378ADD','#85B7EB','#0f766e','#34d399','#7c3aed','#a78bfa','#b45309','#fbbf24','#374151'];
   const tierEntries=Object.entries(tiers).sort((a,b)=>b[1].rev-a[1].rev);
-
+ 
   if(subTypeChart)subTypeChart.destroy();
   subTypeChart=new Chart(document.getElementById('subTypeChart'),{
     type:'doughnut',
@@ -635,8 +688,8 @@ function renderSubCharts(subs,from,to){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
   });
   const subTotal=tierEntries.reduce((s,[,v])=>s+v.rev,0);
-  document.getElementById('sub-legend').innerHTML=tierEntries.map(([k,v],i)=>`<span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:${tierColors[i%tierColors.length]};display:inline-block"></span>${k} ${subTotal>0?Math.round(v.rev/subTotal*100)+'%':''}</span>`).join('');
-
+  document.getElementById('sub-legend').innerHTML=tierEntries.map(([k,v],i)=>`<span style="display:flex;align-items:center;gap:4px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:3px;background:${tierColors[i%tierColors.length]};flex-shrink:0;display:inline-block"></span>${k} ${subTotal>0?Math.round(v.rev/subTotal*100)+'%':''}</span>`).join('');
+ 
   const maxSubRev=Math.max(...tierEntries.map(([,v])=>v.rev),1);
   document.getElementById('sub-bars').innerHTML=tierEntries.map(([k,v],i)=>`
     <div class="bar-row">
@@ -645,40 +698,40 @@ function renderSubCharts(subs,from,to){
       <div class="bar-val">${fmt(v.rev)} · ${v.count.toLocaleString()} payments</div>
     </div>`).join('');
 }
-
+ 
 // ── Transactions ─────────────────────────────────────────────────────────────
-function getFiltered(){
+function getFiltered() {
   const q=(document.getElementById('filter-q').value||'').toLowerCase();
   return payments.filter(p=>{
-    if(activeStatusFilter!=='all'&&p.status!==activeStatusFilter)return false;
-    if(activeCatFilter!=='all'&&p.category!==activeCatFilter)return false;
-    if(q&&!(p.description+p.email).toLowerCase().includes(q))return false;
+    if(activeStatusFilter!=='all'&&p.status!==activeStatusFilter) return false;
+    if(activeCatFilter!=='all'&&p.category!==activeCatFilter) return false;
+    if(q&&!(p.description+p.email).toLowerCase().includes(q)) return false;
     return true;
   });
 }
-
-function renderTx(){
+ 
+function renderTx() {
   txPage=0;
   currentFiltered=getFiltered();
   document.getElementById('tx-count').textContent=currentFiltered.length.toLocaleString()+' transactions';
   renderTxPage();
 }
-
-function renderTxPage(){
+ 
+function renderTxPage() {
   const slice=currentFiltered.slice(0,100*(txPage+1));
   const list=document.getElementById('tx-list');
   if(!currentFiltered.length){list.innerHTML='<div style="font-size:13px;color:#888;padding:16px 0">No transactions match your filters.</div>';document.getElementById('tx-more').style.display='none';return;}
-  const statusColor=s=>s==='succeeded'?'#065f46':s==='failed'?'#92400e':s==='refunded'?'#991b1b':'#888';
-  const statusLabel=s=>s==='succeeded'?'✓ Successful':s==='failed'?'✕ Failed':s==='refunded'?'↩ Refunded':'—';
+  const sColor=s=>s==='succeeded'?'#065f46':s==='failed'?'#92400e':'#991b1b';
+  const sLabel=s=>s==='succeeded'?'✓ Paid':s==='failed'?'✕ Failed':'↩ Refunded';
   list.innerHTML=slice.map(p=>{
-    const meta=CATEGORY_META[p.category]||{label:p.category,color:'#888',tagClass:'tag-other'};
+    const meta=CATEGORY_META[p.category]||{label:p.category,color:'#888'};
     return `<div class="tx-row">
       <div style="flex:1;min-width:0">
         <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.description||'Unnamed'}</div>
         <div style="font-size:12px;color:#888">${p.email||p.id}</div>
       </div>
-      <span class="tag ${meta.tagClass}">${meta.label}</span>
-      <span style="font-size:11px;font-weight:600;color:${statusColor(p.status)};white-space:nowrap">${statusLabel(p.status)}</span>
+      <span class="tag" style="background:${meta.color}22;color:${meta.color}">${meta.label}</span>
+      <span style="font-size:11px;font-weight:600;color:${sColor(p.status)};white-space:nowrap">${sLabel(p.status)}</span>
       <div style="min-width:80px;text-align:right;font-weight:600;color:${p.status==='refunded'?'#991b1b':p.status==='failed'?'#92400e':'#1a1a1a'}">${fmt(p.amount)}</div>
       <div style="min-width:95px;text-align:right;font-size:12px;color:#888">${p.date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
     </div>`;
@@ -687,11 +740,11 @@ function renderTxPage(){
   if(slice.length<currentFiltered.length){mb.style.display='block';mb.querySelector('button').textContent=`Show more (${(currentFiltered.length-slice.length).toLocaleString()} remaining)`;}
   else mb.style.display='none';
 }
-
+ 
 function showMoreTx(){txPage++;renderTxPage();}
-
+ 
 // ── CSV Download ─────────────────────────────────────────────────────────────
-function downloadCSV(){
+function downloadCSV() {
   const filtered=getFiltered();
   if(!filtered.length){alert('No transactions to download with current filters.');return;}
   const headers=['Date','Description','Email','Category','Status','Amount','Currency','Transaction ID'];
@@ -699,7 +752,7 @@ function downloadCSV(){
     p.date.toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'}),
     `"${(p.description||'').replace(/"/g,'""')}"`,
     `"${(p.email||'').replace(/"/g,'""')}"`,
-    CATEGORY_META[p.category]?.label||p.category,
+    `"${CATEGORY_META[p.category]?.label||p.category}"`,
     p.status,
     p.amount.toFixed(2),
     p.currency,
@@ -710,40 +763,42 @@ function downloadCSV(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  const from=document.getElementById('date-from').value;
-  const to=document.getElementById('date-to').value;
-  a.download=`jen-health-payments-${from}-to-${to}.csv`;
+  a.download=`jen-health-payments-${document.getElementById('date-from').value}-to-${document.getElementById('date-to').value}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
-
+ 
 // ── AI Summary + Ask ─────────────────────────────────────────────────────────
-async function generateSummary(paid,subs,courses,failed,refunds,net,from,to){
+async function generateSummary(paid,subs,courses,failed,refunds,net,from,to) {
   const el=document.getElementById('ai-summary');
   const courseBreakdown={};
-  COURSE_KEYS.forEach(k=>{const items=courses.filter(p=>p.category===k);if(items.length)courseBreakdown[CATEGORY_META[k].label]={count:items.length,rev:Math.round(items.reduce((s,p)=>s+p.amount,0))};});
+  COURSE_RULES.forEach(r=>{
+    const items=courses.filter(p=>p.category===r.key);
+    if(items.length) courseBreakdown[r.label]={count:items.length,rev:Math.round(items.reduce((s,p)=>s+p.amount,0))};
+  });
   const stats={period:`${from} to ${to}`,paid:paid.length,net:Math.round(net),subscriptions:subs.length,subRevenue:Math.round(subs.reduce((s,p)=>s+p.amount,0)),courses:courses.length,courseRevenue:Math.round(courses.reduce((s,p)=>s+p.amount,0)),failed:failed.length,refunds:refunds.length,courseBreakdown};
-  try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:350,messages:[{role:'user',content:`Write a 4-sentence plain-English summary for a membership and course business owner. Include the date range, subscription vs course split, and top-performing course. Be warm and specific with numbers. No bullet points. Data: ${JSON.stringify(stats)}`}]})});
-    const d=await r.json();el.textContent=d.content.map(i=>i.text||'').join('');
-  }catch(e){
-    el.textContent=`${paid.length.toLocaleString()} successful payments totaling ${fmt(net)} net revenue between ${from} and ${to}. Subscriptions accounted for ${subs.length.toLocaleString()} payments and course sales for ${courses.length.toLocaleString()}. ${failed.length.toLocaleString()} failed payment attempts and ${refunds.length} refunds were recorded in this period.`;
+  try {
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:350,messages:[{role:'user',content:`Write a 4-sentence plain-English summary for a membership and course business owner. Include the date range, subscription vs course split, and the top-performing course by revenue. Be warm and specific with numbers. No bullet points. Data: ${JSON.stringify(stats)}`}]})});
+    const d=await r.json();
+    el.textContent=d.content.map(i=>i.text||'').join('');
+  } catch(e) {
+    el.textContent=`${paid.length.toLocaleString()} successful payments totaling ${fmt(net)} net revenue between ${from} and ${to}. Subscriptions: ${subs.length.toLocaleString()} payments. Course sales: ${courses.length.toLocaleString()} across all programs. ${failed.length.toLocaleString()} failed attempts and ${refunds.length} refunds recorded.`;
   }
 }
-
+ 
 function ask(q){document.getElementById('ask-input').value=q;submitAsk();}
-async function submitAsk(){
-  const q=document.getElementById('ask-input').value.trim();if(!q)return;
+async function submitAsk() {
+  const q=document.getElementById('ask-input').value.trim(); if(!q)return;
   const out=document.getElementById('ask-out');
   out.innerHTML='<div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#888"><div class="spinner" style="width:20px;height:20px;border-width:2px"></div>Analyzing...</div>';
-  const from=document.getElementById('date-from').value,to=document.getElementById('date-to').value;
+  const from=document.getElementById('date-from').value, to=document.getElementById('date-to').value;
   const summary=payments.slice(0,80).map(p=>`${p.description||'unnamed'}|${CATEGORY_META[p.category]?.label||p.category}|$${p.amount}|${p.status}|${p.date.toLocaleDateString()}`).join('\n');
   const totals={total:payments.length,paid:payments.filter(p=>p.status==='succeeded').length,failed:payments.filter(p=>p.status==='failed').length,refunded:payments.filter(p=>p.status==='refunded').length};
-  try{
+  try {
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:`Answer this question about Stripe data from ${from} to ${to}: "${q}"\nStats: ${JSON.stringify(totals)}\nSample data:\n${summary}\nBe specific and concise. Plain text only.`}]})});
     const d=await r.json();
     out.innerHTML=`<div class="ai-box">${d.content.map(i=>i.text||'').join('').replace(/\n/g,'<br>')}</div>`;
-  }catch(e){out.innerHTML='<div style="color:#991b1b;font-size:13px">Something went wrong. Please try again.</div>';}
+  } catch(e){out.innerHTML='<div style="color:#991b1b;font-size:13px">Something went wrong. Please try again.</div>';}
 }
 </script>
 </body>
