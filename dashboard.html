@@ -29,6 +29,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tx-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0ec;font-size:13px}
 .tx-row:last-child{border-bottom:none}
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:600;white-space:nowrap}
+.confidence-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:14px;cursor:pointer;border:1px solid #e5e5e0;background:#fff;color:#333;font-family:inherit}
 .btn:hover{background:#f8f8f5}
 .btn-primary{background:#185FA5;color:#fff;border-color:#185FA5}
@@ -55,15 +56,17 @@ select.input{cursor:pointer}
 @keyframes spin{to{transform:rotate(360deg)}}
 .error-box{background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:14px;font-size:13px;color:#991b1b;line-height:1.6;margin-bottom:16px}
 .info-box{background:#dbeafe;border:1px solid #93c5fd;border-radius:10px;padding:10px 14px;font-size:13px;color:#1e40af;margin-bottom:16px}
+.warn-box{background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:10px 14px;font-size:13px;color:#713f12;margin-bottom:16px}
 .progress-bar{height:8px;background:#e5e5e0;border-radius:4px;overflow:hidden;margin-top:10px}
 .progress-fill{height:100%;background:#185FA5;border-radius:4px;transition:width .3s ease}
 .ai-box{background:#f8f8f5;border-radius:10px;padding:16px;font-size:14px;line-height:1.7;color:#333}
 .label{display:block;font-size:13px;font-weight:500;color:#555;margin-bottom:6px}
+.item-name{font-size:11px;color:#888;font-style:italic;margin-top:1px}
 @media(max-width:900px){.grid5{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
- 
+
 <div class="topbar">
   <div style="width:32px;height:32px;background:#185FA5;border-radius:8px;display:flex;align-items:center;justify-content:center">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
@@ -71,9 +74,9 @@ select.input{cursor:pointer}
   <div class="topbar-title">Jen Health — Stripe Dashboard</div>
   <div class="topbar-sub" id="topbar-status">Not connected</div>
 </div>
- 
+
 <div class="container">
- 
+
 <!-- CONNECT -->
 <div id="screen-connect" class="screen on">
   <div style="max-width:480px;margin:40px auto">
@@ -97,23 +100,23 @@ select.input{cursor:pointer}
         </div>
       </div>
       <div style="margin-bottom:20px">
-        <label class="label">Maximum transactions (safety cap)</label>
+        <label class="label">Transaction limit</label>
         <select id="pay-limit" class="input">
-          <option value="500">Cap at 500</option>
-          <option value="1000">Cap at 1,000</option>
-          <option value="2500">Cap at 2,500</option>
-          <option value="5000">Cap at 5,000</option>
-          <option value="10000">Cap at 10,000</option>
-          <option value="25000" selected>No cap (up to 25,000)</option>
+          <option value="500">Up to 500</option>
+          <option value="1000">Up to 1,000</option>
+          <option value="2500">Up to 2,500</option>
+          <option value="5000">Up to 5,000</option>
+          <option value="10000">Up to 10,000</option>
+          <option value="25000" selected>All transactions (up to 25,000)</option>
         </select>
-        <div style="font-size:12px;color:#aaa;margin-top:5px">All transactions in your selected date range will load. This cap only stops fetching if a date range is unexpectedly large.</div>
+        <div style="font-size:12px;color:#aaa;margin-top:5px">Fetches 100 at a time with live progress. Invoice line items are expanded for accurate product identification.</div>
       </div>
       <div id="connect-error" style="display:none"></div>
       <button class="btn btn-primary btn-full" onclick="connect()">Load payments →</button>
     </div>
   </div>
 </div>
- 
+
 <!-- LOADING -->
 <div id="screen-loading" class="screen" style="text-align:center;padding:60px 0">
   <div class="spinner" style="margin-bottom:20px"></div>
@@ -127,7 +130,7 @@ select.input{cursor:pointer}
   </div>
   <button class="btn" onclick="cancelFetch()" style="margin-top:24px;font-size:13px">Cancel</button>
 </div>
- 
+
 <!-- DASHBOARD -->
 <div id="screen-dash" class="screen" style="padding-top:20px">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
@@ -140,9 +143,10 @@ select.input{cursor:pointer}
       <button class="btn" onclick="showConnect()">← Back</button>
     </div>
   </div>
- 
+
   <div id="truncated-notice" style="display:none" class="info-box"></div>
- 
+  <div id="unmatched-notice" style="display:none" class="warn-box"></div>
+
   <div id="date-picker-inline" style="display:none;margin-bottom:16px">
     <div class="card">
       <div style="font-size:15px;font-weight:600;margin-bottom:12px">Change date range</div>
@@ -160,12 +164,12 @@ select.input{cursor:pointer}
       </div>
       <div style="margin-bottom:12px">
         <select id="pay-limit2" class="input">
-          <option value="500">Cap at 500</option>
-          <option value="1000">Cap at 1,000</option>
-          <option value="2500">Cap at 2,500</option>
-          <option value="5000">Cap at 5,000</option>
-          <option value="10000">Cap at 10,000</option>
-          <option value="25000" selected>No cap (up to 25,000)</option>
+          <option value="500">Up to 500</option>
+          <option value="1000">Up to 1,000</option>
+          <option value="2500">Up to 2,500</option>
+          <option value="5000">Up to 5,000</option>
+          <option value="10000">Up to 10,000</option>
+          <option value="25000" selected>All transactions (up to 25,000)</option>
         </select>
       </div>
       <div style="display:flex;gap:8px">
@@ -174,9 +178,9 @@ select.input{cursor:pointer}
       </div>
     </div>
   </div>
- 
+
   <div class="grid5" id="metrics-row"></div>
- 
+
   <div class="tab-bar">
     <button class="tab on" onclick="switchTab(this,'t-overview')">Overview</button>
     <button class="tab" onclick="switchTab(this,'t-transactions')">Transactions</button>
@@ -184,7 +188,7 @@ select.input{cursor:pointer}
     <button class="tab" onclick="switchTab(this,'t-subscriptions')">Subscriptions</button>
     <button class="tab" onclick="switchTab(this,'t-ask')">Ask Claude</button>
   </div>
- 
+
   <!-- OVERVIEW -->
   <div id="t-overview" class="tc on">
     <div class="grid2">
@@ -203,7 +207,7 @@ select.input{cursor:pointer}
       <div id="ai-summary" class="ai-box">Generating analysis...</div>
     </div>
   </div>
- 
+
   <!-- TRANSACTIONS -->
   <div id="t-transactions" class="tc">
     <div class="card">
@@ -221,12 +225,18 @@ select.input{cursor:pointer}
         <div style="display:flex;flex-wrap:wrap;gap:6px" id="cat-filter-buttons"></div>
       </div>
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
-        <input id="filter-q" oninput="renderTx()" placeholder="Search email or description..." class="input" style="flex:1;min-width:200px"/>
+        <input id="filter-q" oninput="renderTx()" placeholder="Search email, description, or item name..." class="input" style="flex:1;min-width:200px"/>
         <div id="tx-count" style="font-size:13px;color:#888;white-space:nowrap"></div>
         <button class="btn btn-success" onclick="downloadCSV()" style="white-space:nowrap">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Download CSV
         </button>
+      </div>
+      <!-- Confidence legend -->
+      <div style="display:flex;gap:16px;margin-bottom:14px;font-size:12px;color:#888;flex-wrap:wrap">
+        <span style="display:flex;align-items:center;gap:5px"><span class="confidence-dot" style="background:#16a34a"></span>Matched from invoice item</span>
+        <span style="display:flex;align-items:center;gap:5px"><span class="confidence-dot" style="background:#f59e0b"></span>Matched from description/amount</span>
+        <span style="display:flex;align-items:center;gap:5px"><span class="confidence-dot" style="background:#e5e7eb"></span>Unmatched</span>
       </div>
       <div id="tx-list"></div>
       <div id="tx-more" style="display:none;text-align:center;padding-top:12px">
@@ -234,7 +244,7 @@ select.input{cursor:pointer}
       </div>
     </div>
   </div>
- 
+
   <!-- COURSES -->
   <div id="t-courses" class="tc">
     <div class="grid2">
@@ -245,7 +255,7 @@ select.input{cursor:pointer}
       </div>
       <div class="card">
         <div class="section-label">Units sold by course</div>
-        <div style="position:relative;height:280px"><canvas id="courseUnitsChart"></canvas></div>
+        <div style="position:relative;height:280px" id="courseUnitsWrap"><canvas id="courseUnitsChart"></canvas></div>
       </div>
     </div>
     <div class="card">
@@ -253,7 +263,7 @@ select.input{cursor:pointer}
       <div id="course-bars"></div>
     </div>
   </div>
- 
+
   <!-- SUBSCRIPTIONS -->
   <div id="t-subscriptions" class="tc">
     <div class="grid2">
@@ -272,7 +282,7 @@ select.input{cursor:pointer}
       <div id="sub-bars"></div>
     </div>
   </div>
- 
+
   <!-- ASK -->
   <div id="t-ask" class="tc">
     <div class="card">
@@ -292,10 +302,10 @@ select.input{cursor:pointer}
       <div id="ask-out" style="margin-top:16px"></div>
     </div>
   </div>
- 
+
 </div>
 </div>
- 
+
 <script>
 const PROXY = '';
 let payments = [], txPage = 0, currentFiltered = [];
@@ -303,164 +313,121 @@ let catChart, timeChart, courseChart, courseUnitsChart, subTimeChart, subTypeCha
 let fetchCancelled = false;
 let activeStatusFilter = 'all';
 let activeCatFilter = 'all';
- 
+
 // ── Complete product catalog ─────────────────────────────────────────────────
+// Each rule has: key, label, color, keywords (matched against invoice item name
+// OR charge description), amounts (fallback only when no item name available)
 const COURSE_RULES = [
-  {
-    key: 'lifting-for-longevity',
-    label: 'Lifting for Longevity',
-    color: '#0369a1',
-    keywords: ['lifting for longevity','lifting for long'],
-    amounts: new Set([65,75,85,95,99])
-  },
-  {
-    key: 'strong-healthy-joints',
-    label: 'Strong Healthy Joints',
-    color: '#0f766e',
-    keywords: ['strong healthy joints','strong, healthy joints'],
-    amounts: new Set([49,59,69,79])
-  },
-  {
-    key: 'posture-redefined',
-    label: 'Posture Redefined',
-    color: '#7c3aed',
-    keywords: ['posture redefined'],
-    amounts: new Set([69,89])
-  },
-  {
-    key: 'mobility-foundations',
-    label: 'Mobility Foundations',
-    color: '#065f46',
-    keywords: ['mobility foundation'],
-    amounts: new Set([69,79,85,89,99])
-  },
-  {
-    key: 'pelvic-floor',
-    label: 'Pelvic Floor Foundations',
-    color: '#9d174d',
-    keywords: ['pelvic floor'],
-    amounts: new Set([45,55,65])
-  },
-  {
-    key: 'barefoot',
-    label: 'Barefoot Mini Course',
-    color: '#92400e',
-    keywords: ['barefoot'],
-    amounts: new Set([30,39,45,55,65])
-  },
-  {
-    key: '30-days-release',
-    label: '30 Days of Release and Recovery',
-    color: '#b45309',
-    keywords: ['30 days of release','release and recovery'],
-    amounts: new Set([59,69,79,89])
-  },
-  {
-    key: '30-days-strength',
-    label: '30 Days of Strength and Mobility',
-    color: '#d97706',
-    keywords: ['30 days of strength','strength and mobility'],
-    amounts: new Set([89])
-  },
-  {
-    key: 'move2improve',
-    label: 'Move 2 Improve',
-    color: '#166534',
-    keywords: ['move 2 improve','move2improve','m2i'],
-    amounts: new Set([36,45,49,59,60,79])
-  },
-  {
-    key: 'grateful',
-    label: 'Grateful for My Body',
-    color: '#4338ca',
-    keywords: ['grateful for my body','grateful for my'],
-    amounts: new Set([45,60])
-  },
+  { key:'lifting-for-longevity',   label:'Lifting for Longevity',             color:'#0369a1', keywords:['lifting for longevity','lifting for long'],                    amounts:new Set([65,75,85,95,99]) },
+  { key:'strong-healthy-joints',   label:'Strong Healthy Joints',             color:'#0f766e', keywords:['strong healthy joints','strong, healthy joints'],              amounts:new Set([49,53.40,59,69,79]) },
+  { key:'posture-redefined',       label:'Posture Redefined',                 color:'#7c3aed', keywords:['posture redefined'],                                           amounts:new Set([69,89]) },
+  { key:'mobility-foundations',    label:'Mobility Foundations',              color:'#065f46', keywords:['mobility foundation'],                                         amounts:new Set([69,79,85,89,99]) },
+  { key:'pelvic-floor',            label:'Pelvic Floor Foundations',          color:'#9d174d', keywords:['pelvic floor'],                                                amounts:new Set([45,55,65]) },
+  { key:'barefoot',                label:'Barefoot Mini Course',              color:'#92400e', keywords:['barefoot'],                                                    amounts:new Set([30,39,45,55,65]) },
+  { key:'30-days-release',         label:'30 Days of Release & Recovery',     color:'#b45309', keywords:['30 days of release','release and recovery','release & recovery'], amounts:new Set([59,69,79,89]) },
+  { key:'30-days-strength',        label:'30 Days of Strength & Mobility',    color:'#d97706', keywords:['30 days of strength','strength and mobility','strength & mobility'], amounts:new Set([89]) },
+  { key:'move2improve',            label:'Move 2 Improve',                    color:'#166534', keywords:['move 2 improve','move2improve','m2i'],                         amounts:new Set([36,45,49,59,60,79]) },
+  { key:'grateful',                label:'Grateful for My Body',              color:'#4338ca', keywords:['grateful for my body','grateful for my'],                     amounts:new Set([45,60]) },
 ];
- 
+
 const COURSE_KEYS = COURSE_RULES.map(r => r.key);
- 
-// Subscription amount set — all known recurring price points
+
+const SUB_KEYWORDS = [
+  'membership','subscribe','subscription','annual','monthly',
+  'optimal body','optimal-body','jen annual','jen monthly',
+  'the-optimal-body','optimal_body','jen health membership'
+];
+
 const SUB_AMOUNTS = new Set([
   1, 15, 19.99, 24.99, 27,
   119.95, 119.99, 129.99, 149.99,
   159.99, 161.99, 162, 179.99,
   200, 215, 275
 ]);
- 
-const SUB_KEYWORDS = [
-  'membership','subscribe','subscription','annual','monthly',
-  'optimal body','optimal-body','jen annual','jen monthly',
-  'the-optimal-body','optimal_body'
-];
- 
+
 const CATEGORY_META = {
-  subscription: { label: 'Subscription', color: '#185FA5' },
-  'lifting-for-longevity': { label: 'Lifting for Longevity', color: '#0369a1' },
-  'strong-healthy-joints': { label: 'Strong Healthy Joints', color: '#0f766e' },
-  'posture-redefined': { label: 'Posture Redefined', color: '#7c3aed' },
-  'mobility-foundations': { label: 'Mobility Foundations', color: '#065f46' },
-  'pelvic-floor': { label: 'Pelvic Floor Foundations', color: '#9d174d' },
-  'barefoot': { label: 'Barefoot Mini Course', color: '#92400e' },
-  '30-days-release': { label: '30 Days of Release & Recovery', color: '#b45309' },
-  '30-days-strength': { label: '30 Days of Strength & Mobility', color: '#d97706' },
-  'move2improve': { label: 'Move 2 Improve', color: '#166534' },
-  'grateful': { label: 'Grateful for My Body', color: '#4338ca' },
-  'other-course': { label: 'Other Course', color: '#374151' },
-  refund: { label: 'Refund', color: '#991b1b' },
-  failed: { label: 'Failed', color: '#92400e' },
-  other: { label: 'Other', color: '#9ca3af' },
+  subscription:           { label:'Subscription',                  color:'#185FA5' },
+  'lifting-for-longevity':{ label:'Lifting for Longevity',         color:'#0369a1' },
+  'strong-healthy-joints':{ label:'Strong Healthy Joints',         color:'#0f766e' },
+  'posture-redefined':    { label:'Posture Redefined',             color:'#7c3aed' },
+  'mobility-foundations': { label:'Mobility Foundations',          color:'#065f46' },
+  'pelvic-floor':         { label:'Pelvic Floor Foundations',      color:'#9d174d' },
+  'barefoot':             { label:'Barefoot Mini Course',          color:'#92400e' },
+  '30-days-release':      { label:'30 Days of Release & Recovery', color:'#b45309' },
+  '30-days-strength':     { label:'30 Days of Strength & Mobility',color:'#d97706' },
+  'move2improve':         { label:'Move 2 Improve',                color:'#166534' },
+  'grateful':             { label:'Grateful for My Body',          color:'#4338ca' },
+  'other-course':         { label:'Other Course',                  color:'#374151' },
+  refund:                 { label:'Refund',                        color:'#991b1b' },
+  failed:                 { label:'Failed',                        color:'#92400e' },
+  other:                  { label:'Other',                         color:'#9ca3af' },
 };
- 
-function categorizePayment(p) {
-  if (p.status === 'refunded') return 'refund';
-  if (p.status === 'failed') return 'failed';
-  const desc = (p.description || '').toLowerCase();
-  const amt = p.amount;
- 
-  // Subscription keywords take highest priority
-  if (SUB_KEYWORDS.some(k => desc.includes(k))) return 'subscription';
- 
-  // Check each named course by keyword first, then by amount
+
+// ── Categorization — item name first, then fallback ──────────────────────────
+// confidence: 'invoice' = matched from Stripe invoice line item (most reliable)
+//             'description' = matched from charge description / amount (fallback)
+//             'unmatched' = could not identify
+
+function matchTextToCategory(text) {
+  if (!text) return null;
+  const t = text.toLowerCase();
+  // Check subscription keywords
+  if (SUB_KEYWORDS.some(k => t.includes(k))) return 'subscription';
+  // Check each course
   for (const rule of COURSE_RULES) {
-    if (rule.keywords.some(k => desc.includes(k))) return rule.key;
+    if (rule.keywords.some(k => t.includes(k))) return rule.key;
   }
- 
-  // Amount-based course matching (only if not a known sub amount)
-  if (!SUB_AMOUNTS.has(amt)) {
-    for (const rule of COURSE_RULES) {
-      if (rule.amounts.has(amt)) return rule.key;
+  // Generic course/class fallback
+  if (['course','class','workshop','program','challenge','training','certificate'].some(k => t.includes(k))) return 'other-course';
+  return null;
+}
+
+function categorizePayment(p) {
+  if (p.status === 'refunded') return { category:'refund', confidence:'invoice', itemName:'' };
+  if (p.status === 'failed')   return { category:'failed', confidence:'invoice', itemName:'' };
+
+  // 1. Try invoice line items first (most reliable — actual product name from Stripe)
+  if (p.invoiceItems && p.invoiceItems.length > 0) {
+    for (const item of p.invoiceItems) {
+      const cat = matchTextToCategory(item);
+      if (cat) return { category:cat, confidence:'invoice', itemName:item };
     }
   }
- 
-  // Generic course fallback
-  if (['course','class','workshop','program','challenge','training','certificate'].some(k => desc.includes(k))) {
-    return 'other-course';
+
+  // 2. Try charge description
+  const descCat = matchTextToCategory(p.description);
+  if (descCat) return { category:descCat, confidence:'description', itemName:p.description };
+
+  // 3. Amount-based fallback for subscriptions
+  if (SUB_AMOUNTS.has(p.amount) && p.hasInvoice) return { category:'subscription', confidence:'description', itemName:'' };
+
+  // 4. Amount-based fallback for courses (only if not a known sub amount)
+  if (!SUB_AMOUNTS.has(p.amount)) {
+    for (const rule of COURSE_RULES) {
+      if (rule.amounts.has(p.amount)) return { category:rule.key, confidence:'description', itemName:'' };
+    }
   }
- 
-  // Subscription by amount + invoice
-  if (SUB_AMOUNTS.has(amt) && p.hasInvoice) return 'subscription';
- 
-  return 'other';
+
+  return { category:'other', confidence:'unmatched', itemName:'' };
 }
- 
-// Build category filter buttons dynamically
+
+// ── Build category filter buttons ────────────────────────────────────────────
 function buildCatFilterButtons() {
   const allCats = [
-    { key: 'all', label: 'All categories' },
-    { key: 'subscription', label: 'Subscriptions' },
-    ...COURSE_RULES.map(r => ({ key: r.key, label: r.label })),
-    { key: 'other-course', label: 'Other Course' },
-    { key: 'other', label: 'Other' },
+    { key:'all', label:'All categories' },
+    { key:'subscription', label:'Subscriptions' },
+    ...COURSE_RULES.map(r => ({ key:r.key, label:r.label })),
+    { key:'other-course', label:'Other Course' },
+    { key:'other', label:'Other' },
   ];
   document.getElementById('cat-filter-buttons').innerHTML = allCats.map(c =>
     `<button class="filter-btn${c.key==='all'?' on':''}" id="cf-${c.key}" onclick="setCatFilter('${c.key}',this)">${c.label}</button>`
   ).join('');
 }
- 
+
 // ── Utilities ────────────────────────────────────────────────────────────────
 function today() { return new Date().toISOString().split('T')[0]; }
-function daysAgo(n) { const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().split('T')[0]; }
+function daysAgo(n) { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split('T')[0]; }
 function toUnix(s) { return Math.floor(new Date(s+'T00:00:00').getTime()/1000); }
 function toEndUnix(s) { return Math.floor(new Date(s+'T23:59:59').getTime()/1000); }
 function fmt(n) { return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -471,17 +438,16 @@ function cancelFetch() { fetchCancelled=true; show('screen-connect'); }
 function setProgress(l,m) { const p=m>0?Math.min(Math.round(l/m*100),99):0; document.getElementById('progress').style.width=p+'%'; document.getElementById('progress-label').textContent=l.toLocaleString()+' loaded'; document.getElementById('progress-pct').textContent=p+'%'; }
 function setPreset(days,el) { document.querySelectorAll('#screen-connect .preset-btn').forEach(b=>b.classList.remove('on')); el.classList.add('on'); if(days==='custom')return; document.getElementById('date-from').value=daysAgo(days); document.getElementById('date-to').value=today(); }
 function setPreset2(days,el) { document.querySelectorAll('#date-picker-inline .preset-btn').forEach(b=>b.classList.remove('on')); el.classList.add('on'); document.getElementById('date-from2').value=daysAgo(days); document.getElementById('date-to2').value=today(); }
- 
+
 document.getElementById('date-from').value = daysAgo(30);
 document.getElementById('date-to').value = today();
 buildCatFilterButtons();
- 
+
 function showDatePicker() { const dp=document.getElementById('date-picker-inline'); dp.style.display=dp.style.display==='none'?'block':'none'; document.getElementById('date-from2').value=document.getElementById('date-from').value; document.getElementById('date-to2').value=document.getElementById('date-to').value; }
 async function refetch() { document.getElementById('date-from').value=document.getElementById('date-from2').value; document.getElementById('date-to').value=document.getElementById('date-to2').value; document.getElementById('pay-limit').value=document.getElementById('pay-limit2').value; document.getElementById('date-picker-inline').style.display='none'; await fetchAndRender(); }
- 
 function setStatusFilter(val,el) { activeStatusFilter=val; document.querySelectorAll('[id^="sf-"]').forEach(b=>b.classList.remove('on')); el.classList.add('on'); renderTx(); }
 function setCatFilter(val,el) { activeCatFilter=val; document.querySelectorAll('[id^="cf-"]').forEach(b=>b.classList.remove('on')); el.classList.add('on'); renderTx(); }
- 
+
 // ── Connect / Fetch ──────────────────────────────────────────────────────────
 async function connect() {
   const from=document.getElementById('date-from').value, to=document.getElementById('date-to').value;
@@ -490,102 +456,123 @@ async function connect() {
   if(new Date(from)>new Date(to)){errEl.innerHTML='<div class="error-box">Start date must be before end date.</div>';errEl.style.display='block';return;}
   await fetchAndRender();
 }
- 
+
 async function fetchAndRender() {
   const from=document.getElementById('date-from').value, to=document.getElementById('date-to').value;
   const maxRecords=parseInt(document.getElementById('pay-limit').value);
-  const fromUnix=toUnix(from), toUnix2=toEndUnix(to);
   fetchCancelled=false;
   document.getElementById('load-msg').textContent='Fetching transactions from Stripe...';
   document.getElementById('load-detail').textContent=from+' → '+to;
   setProgress(0,maxRecords); show('screen-loading');
   document.getElementById('topbar-status').textContent='Loading...';
- 
+
   const allCharges=[]; let startingAfter=null, hasMore=true, errorMsg=null;
   try {
     while(hasMore&&allCharges.length<maxRecords&&!fetchCancelled) {
-      // Always send date filters — Stripe enforces them server-side
-      const params=new URLSearchParams({
-        'created[gte]': fromUnix,
-        'created[lte]': toUnix2
-      });
+      const params=new URLSearchParams({'created[gte]':toUnix(from),'created[lte]':toEndUnix(to)});
       if(startingAfter) params.append('starting_after',startingAfter);
       const r=await fetch(`${PROXY}/charges?${params}`);
       if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Server error '+r.status);}
       const data=await r.json();
       if(data.error) throw new Error(data.error);
       const batch=data.data||[];
- 
-      // Extra client-side guard: drop anything outside the date range
-      const inRange=batch.filter(c=>c.created>=fromUnix&&c.created<=toUnix2);
-      allCharges.push(...inRange);
- 
-      // If Stripe returned records but none were in range, we've gone past our window — stop
+      allCharges.push(...batch);
       hasMore=data.has_more;
-      if(batch.length>0&&inRange.length===0){ hasMore=false; }
       startingAfter=batch.length>0?batch[batch.length-1].id:null;
       if(!startingAfter) hasMore=false;
- 
       setProgress(allCharges.length,maxRecords);
-      document.getElementById('load-detail').textContent=allCharges.length.toLocaleString()+' transactions in date range...';
+      document.getElementById('load-detail').textContent=allCharges.length.toLocaleString()+' transactions loaded...';
     }
   } catch(e){errorMsg=e.message;}
- 
+
   if(fetchCancelled) return;
-  if(errorMsg) {
-    show('screen-connect');
-    const errEl=document.getElementById('connect-error');
-    errEl.innerHTML=`<div class="error-box"><strong>Error:</strong> ${errorMsg}</div>`;
-    errEl.style.display='block';
-    document.getElementById('topbar-status').textContent='Error';
-    return;
-  }
- 
+  if(errorMsg){show('screen-connect');const errEl=document.getElementById('connect-error');errEl.innerHTML=`<div class="error-box"><strong>Error:</strong> ${errorMsg}</div>`;errEl.style.display='block';document.getElementById('topbar-status').textContent='Error';return;}
+
   document.getElementById('load-msg').textContent='Categorizing payments...';
-  document.getElementById('load-detail').textContent=allCharges.length.toLocaleString()+' transactions found';
- 
-  payments = allCharges.map(c=>({
-    id: c.id, amount: c.amount/100,
-    currency: (c.currency||'usd').toUpperCase(),
-    status: c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
-    description: c.description||c.statement_descriptor||'',
-    email: c.customer?.email||c.billing_details?.email||c.receipt_email||'',
-    date: new Date(c.created*1000),
-    hasInvoice: !!(c.invoice),
-    category: 'other'
-  }));
-  payments.forEach(p => { p.category = categorizePayment(p); });
- 
+  document.getElementById('load-detail').textContent=allCharges.length.toLocaleString()+' transactions — reading invoice items';
+
+  // Normalize: extract invoice line item descriptions when available
+  payments = allCharges.map(c => {
+    // Collect all invoice line item descriptions
+    const invoiceItems = [];
+    const inv = c.invoice;
+    if (inv && typeof inv === 'object') {
+      const lines = inv.lines;
+      if (lines && lines.data) {
+        lines.data.forEach(line => {
+          if (line.description) invoiceItems.push(line.description);
+          if (line.price && line.price.nickname) invoiceItems.push(line.price.nickname);
+          if (line.plan && line.plan.nickname) invoiceItems.push(line.plan.nickname);
+        });
+      }
+      // Also check invoice description
+      if (inv.description) invoiceItems.push(inv.description);
+    }
+
+    const p = {
+      id: c.id,
+      amount: c.amount/100,
+      currency: (c.currency||'usd').toUpperCase(),
+      status: c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
+      description: c.description||c.statement_descriptor||'',
+      email: c.customer?.email||c.billing_details?.email||c.receipt_email||'',
+      date: new Date(c.created*1000),
+      hasInvoice: !!(c.invoice),
+      invoiceItems,
+      category: 'other',
+      confidence: 'unmatched',
+      itemName: '',
+    };
+    const result = categorizePayment(p);
+    p.category = result.category;
+    p.confidence = result.confidence;
+    p.itemName = result.itemName;
+    return p;
+  });
+
   renderDashboard(from, to, allCharges.length, hasMore&&allCharges.length>=maxRecords);
   show('screen-dash');
 }
- 
+
 // ── Dashboard render ─────────────────────────────────────────────────────────
 function renderDashboard(from, to, total, truncated) {
-  const paid = payments.filter(p=>p.status==='succeeded');
+  const paid    = payments.filter(p=>p.status==='succeeded');
   const refunds = payments.filter(p=>p.status==='refunded');
-  const failed = payments.filter(p=>p.status==='failed');
-  const subs = payments.filter(p=>p.category==='subscription'&&p.status==='succeeded');
+  const failed  = payments.filter(p=>p.status==='failed');
+  const subs    = payments.filter(p=>p.category==='subscription'&&p.status==='succeeded');
   const courses = payments.filter(p=>COURSE_KEYS.includes(p.category)&&p.status==='succeeded');
-  const netRev = paid.reduce((s,p)=>s+p.amount,0) - refunds.reduce((s,p)=>s+p.amount,0);
+  const netRev  = paid.reduce((s,p)=>s+p.amount,0) - refunds.reduce((s,p)=>s+p.amount,0);
   const refundAmt = refunds.reduce((s,p)=>s+p.amount,0);
- 
+  const unmatched = paid.filter(p=>p.confidence==='unmatched'&&p.category==='other');
+
   const ff=new Date(from+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   const tf=new Date(to+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   document.getElementById('dash-subtitle').textContent=`${ff} – ${tf}  ·  ${total.toLocaleString()} transactions`;
   document.getElementById('topbar-status').textContent=`${ff} – ${tf}`;
- 
-  const n=document.getElementById('truncated-notice');
-  if(truncated){n.textContent='Your date range has more than '+parseInt(document.getElementById('pay-limit').value).toLocaleString()+' transactions. Increase the limit or narrow your range.';n.style.display='block';}
-  else n.style.display='none';
- 
+
+  // Matched from invoice vs description stats
+  const invoiceMatched = paid.filter(p=>p.confidence==='invoice').length;
+  const descMatched    = paid.filter(p=>p.confidence==='description').length;
+  const unmatchedCount = unmatched.length;
+
+  const tn=document.getElementById('truncated-notice');
+  if(truncated){tn.textContent='Your date range has more than '+parseInt(document.getElementById('pay-limit').value).toLocaleString()+' transactions. Increase the limit or narrow your range.';tn.style.display='block';}
+  else tn.style.display='none';
+
+  const un=document.getElementById('unmatched-notice');
+  if(unmatchedCount>0){
+    const pct=Math.round(unmatchedCount/paid.length*100);
+    un.textContent=`${unmatchedCount.toLocaleString()} paid transactions (${pct}%) could not be matched to a specific product. ${invoiceMatched.toLocaleString()} were identified from invoice line items (highest confidence), and ${descMatched.toLocaleString()} from charge descriptions.`;
+    un.style.display='block';
+  } else un.style.display='none';
+
   document.getElementById('metrics-row').innerHTML=`
     <div class="metric"><div class="metric-label">Net revenue</div><div class="metric-value">${fmt(netRev)}</div><div class="metric-sub">${fmt(refundAmt)} refunded</div></div>
     <div class="metric"><div class="metric-label">Successful</div><div class="metric-value">${paid.length.toLocaleString()}</div><div class="metric-sub">${fmt(paid.reduce((s,p)=>s+p.amount,0))}</div></div>
     <div class="metric"><div class="metric-label">Failed</div><div class="metric-value" style="color:#92400e">${failed.length.toLocaleString()}</div><div class="metric-sub">not collected</div></div>
     <div class="metric"><div class="metric-label">Subscriptions</div><div class="metric-value">${subs.length.toLocaleString()}</div><div class="metric-sub">${fmt(subs.reduce((s,p)=>s+p.amount,0))}</div></div>
     <div class="metric"><div class="metric-label">Course sales</div><div class="metric-value">${courses.length.toLocaleString()}</div><div class="metric-sub">${fmt(courses.reduce((s,p)=>s+p.amount,0))}</div></div>`;
- 
+
   renderCatChart(paid);
   renderTimeChart(paid,from,to);
   renderCourseCharts(courses);
@@ -593,25 +580,18 @@ function renderDashboard(from, to, total, truncated) {
   txPage=0; renderTx();
   generateSummary(paid,subs,courses,failed,refunds,netRev,from,to);
 }
- 
+
 function renderCatChart(paid) {
   const groups={subscription:0,'other-course':0,other:0};
   COURSE_KEYS.forEach(k=>groups[k]=0);
-  paid.forEach(p=>{
-    if(groups[p.category]!==undefined) groups[p.category]+=p.amount;
-    else groups.other+=p.amount;
-  });
+  paid.forEach(p=>{if(groups[p.category]!==undefined)groups[p.category]+=p.amount;else groups.other+=p.amount;});
   const entries=Object.entries(groups).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
   if(catChart)catChart.destroy();
-  catChart=new Chart(document.getElementById('catChart'),{
-    type:'doughnut',
-    data:{labels:entries.map(([k])=>CATEGORY_META[k]?.label||k),datasets:[{data:entries.map(([,v])=>Math.round(v*100)/100),backgroundColor:entries.map(([k])=>CATEGORY_META[k]?.color||'#888'),borderWidth:3,borderColor:'#fff'}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
-  });
+  catChart=new Chart(document.getElementById('catChart'),{type:'doughnut',data:{labels:entries.map(([k])=>CATEGORY_META[k]?.label||k),datasets:[{data:entries.map(([,v])=>Math.round(v*100)/100),backgroundColor:entries.map(([k])=>CATEGORY_META[k]?.color||'#888'),borderWidth:3,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
   const total=entries.reduce((s,[,v])=>s+v,0);
   document.getElementById('cat-legend').innerHTML=entries.map(([k,v])=>`<span style="display:flex;align-items:center;gap:4px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:3px;background:${CATEGORY_META[k]?.color||'#888'};flex-shrink:0;display:inline-block"></span>${CATEGORY_META[k]?.label||k} ${total>0?Math.round(v/total*100)+'%':''}</span>`).join('');
 }
- 
+
 function renderTimeChart(paid,from,to) {
   const days=(new Date(to)-new Date(from))/(1000*60*60*24);
   const useMonth=days>60;
@@ -619,37 +599,25 @@ function renderTimeChart(paid,from,to) {
   paid.forEach(p=>{const k=useMonth?p.date.toLocaleDateString('en-US',{month:'short',year:'2-digit'}):p.date.toLocaleDateString('en-US',{month:'short',day:'numeric'});byPeriod[k]=(byPeriod[k]||0)+p.amount;});
   const sorted=Object.entries(byPeriod);
   if(timeChart)timeChart.destroy();
-  timeChart=new Chart(document.getElementById('timeChart'),{
-    type:'line',
-    data:{labels:sorted.map(e=>e[0]),datasets:[{data:sorted.map(e=>Math.round(e[1]*100)/100),borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,.08)',fill:true,tension:.3,pointRadius:sorted.length>30?0:3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11},maxTicksLimit:10}},y:{grid:{color:'#f0f0ec'},ticks:{font:{size:11},callback:v=>'$'+v.toLocaleString()}}}}
-  });
+  timeChart=new Chart(document.getElementById('timeChart'),{type:'line',data:{labels:sorted.map(e=>e[0]),datasets:[{data:sorted.map(e=>Math.round(e[1]*100)/100),borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,.08)',fill:true,tension:.3,pointRadius:sorted.length>30?0:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11},maxTicksLimit:10}},y:{grid:{color:'#f0f0ec'},ticks:{font:{size:11},callback:v=>'$'+v.toLocaleString()}}}}});
 }
- 
+
 function renderCourseCharts(courses) {
   const byKey={};
   COURSE_KEYS.forEach(k=>byKey[k]={rev:0,count:0});
   courses.forEach(p=>{if(byKey[p.category]){byKey[p.category].rev+=p.amount;byKey[p.category].count++;}});
   const entries=Object.entries(byKey).filter(([,v])=>v.rev>0).sort((a,b)=>b[1].rev-a[1].rev);
- 
+
   if(courseChart)courseChart.destroy();
-  courseChart=new Chart(document.getElementById('courseChart'),{
-    type:'doughnut',
-    data:{labels:entries.map(([k])=>CATEGORY_META[k]?.label||k),datasets:[{data:entries.map(([,v])=>Math.round(v.rev*100)/100),backgroundColor:entries.map(([k])=>CATEGORY_META[k]?.color||'#888'),borderWidth:3,borderColor:'#fff'}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
-  });
+  courseChart=new Chart(document.getElementById('courseChart'),{type:'doughnut',data:{labels:entries.map(([k])=>CATEGORY_META[k]?.label||k),datasets:[{data:entries.map(([,v])=>Math.round(v.rev*100)/100),backgroundColor:entries.map(([k])=>CATEGORY_META[k]?.color||'#888'),borderWidth:3,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
   const total=entries.reduce((s,[,v])=>s+v.rev,0);
   document.getElementById('course-legend').innerHTML=entries.map(([k,v])=>`<span style="display:flex;align-items:center;gap:4px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:3px;background:${CATEGORY_META[k]?.color||'#888'};flex-shrink:0;display:inline-block"></span>${CATEGORY_META[k]?.label||k} ${total>0?Math.round(v.rev/total*100)+'%':''}</span>`).join('');
- 
+
+  const unitH=Math.max(entries.length*44+60,200);
+  document.getElementById('courseUnitsWrap').style.height=unitH+'px';
   if(courseUnitsChart)courseUnitsChart.destroy();
-  const unitHeight=Math.max(entries.length*42+60,200);
-  document.getElementById('courseUnitsChart').parentElement.style.height=unitHeight+'px';
-  courseUnitsChart=new Chart(document.getElementById('courseUnitsChart'),{
-    type:'bar',
-    data:{labels:entries.map(([k])=>CATEGORY_META[k]?.label||k),datasets:[{data:entries.map(([,v])=>v.count),backgroundColor:entries.map(([k])=>CATEGORY_META[k]?.color||'#888'),borderRadius:6,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'#f0f0ec'},ticks:{font:{size:11}}},y:{grid:{display:false},ticks:{font:{size:11}}}}}
-  });
- 
+  courseUnitsChart=new Chart(document.getElementById('courseUnitsChart'),{type:'bar',data:{labels:entries.map(([k])=>CATEGORY_META[k]?.label||k),datasets:[{data:entries.map(([,v])=>v.count),backgroundColor:entries.map(([k])=>CATEGORY_META[k]?.color||'#888'),borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'#f0f0ec'},ticks:{font:{size:11}}},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
+
   const maxRev=Math.max(...entries.map(([,v])=>v.rev),1);
   document.getElementById('course-bars').innerHTML=entries.map(([k,v])=>`
     <div class="bar-row">
@@ -658,50 +626,48 @@ function renderCourseCharts(courses) {
       <div class="bar-val">${fmt(v.rev)} · ${v.count.toLocaleString()} sold</div>
     </div>`).join('');
 }
- 
+
 function renderSubCharts(subs,from,to) {
   const days=(new Date(to)-new Date(from))/(1000*60*60*24);
   const useMonth=days>60;
   const byPeriod={};
   subs.forEach(p=>{const k=useMonth?p.date.toLocaleDateString('en-US',{month:'short',year:'2-digit'}):p.date.toLocaleDateString('en-US',{month:'short',day:'numeric'});byPeriod[k]=(byPeriod[k]||0)+p.amount;});
   const sorted=Object.entries(byPeriod);
- 
   if(subTimeChart)subTimeChart.destroy();
-  subTimeChart=new Chart(document.getElementById('subTimeChart'),{
-    type:'line',
-    data:{labels:sorted.map(e=>e[0]),datasets:[{data:sorted.map(e=>Math.round(e[1]*100)/100),borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,.08)',fill:true,tension:.3,pointRadius:sorted.length>30?0:3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11},maxTicksLimit:10}},y:{grid:{color:'#f0f0ec'},ticks:{font:{size:11},callback:v=>'$'+v.toLocaleString()}}}}
-  });
- 
-  // Group by inferred product tier
-  const tierFn = amt => {
-    if(amt===24.99) return 'Jen Monthly Membership ($24.99/mo)';
-    if(amt===19.99) return 'Optimal Body Monthly ($19.99/mo)';
-    if(amt===27) return 'Optimal Body Monthly ($27/mo)';
-    if(amt===15) return 'Optimal Body Monthly ($15/mo)';
-    if(amt===1) return 'Trial / Test ($1)';
-    if([119.95,119.99,129.99,149.99,159.99].includes(amt)) return 'Jen Annual Membership';
-    if([161.99,162].includes(amt)) return 'Optimal Body Annual (15% off)';
-    if(amt===179.99) return 'Jen Annual Membership ($179.99)';
-    if(amt===200) return 'Optimal Body Annual (course, $200)';
-    if(amt===215) return 'Annual Membership ($215)';
-    if(amt===275) return 'Optimal Body Annual ($275)';
+  subTimeChart=new Chart(document.getElementById('subTimeChart'),{type:'line',data:{labels:sorted.map(e=>e[0]),datasets:[{data:sorted.map(e=>Math.round(e[1]*100)/100),borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,.08)',fill:true,tension:.3,pointRadius:sorted.length>30?0:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11},maxTicksLimit:10}},y:{grid:{color:'#f0f0ec'},ticks:{font:{size:11},callback:v=>'$'+v.toLocaleString()}}}}});
+
+  const tierFn=amt=>{
+    if(amt===24.99)return 'Jen Monthly ($24.99/mo)';
+    if(amt===19.99)return 'Optimal Body Monthly ($19.99/mo)';
+    if(amt===27)return 'Optimal Body Monthly ($27/mo)';
+    if(amt===15)return 'Optimal Body Monthly ($15/mo)';
+    if(amt===1)return 'Trial / Test ($1)';
+    if([119.95,119.99,129.99,149.99,159.99].includes(amt))return 'Jen Annual Membership';
+    if([161.99,162].includes(amt))return 'Optimal Body Annual (15% off)';
+    if(amt===179.99)return 'Jen Annual Membership ($179.99)';
+    if(amt===200)return 'Optimal Body Annual ($200)';
+    if(amt===215)return 'Annual Membership ($215)';
+    if(amt===275)return 'Optimal Body Annual ($275)';
     return 'Other subscription';
   };
+
+  // Use invoice item name if available for subscription product labeling
   const tiers={};
-  subs.forEach(p=>{const t=tierFn(p.amount);if(!tiers[t])tiers[t]={rev:0,count:0};tiers[t].rev+=p.amount;tiers[t].count++;});
+  subs.forEach(p=>{
+    let tier = p.itemName && p.confidence==='invoice' ? p.itemName : tierFn(p.amount);
+    // Clean up long item names
+    if(tier.length>40) tier=tier.substring(0,40)+'…';
+    if(!tiers[tier])tiers[tier]={rev:0,count:0};
+    tiers[tier].rev+=p.amount;tiers[tier].count++;
+  });
   const tierColors=['#185FA5','#378ADD','#85B7EB','#0f766e','#34d399','#7c3aed','#a78bfa','#b45309','#fbbf24','#374151'];
   const tierEntries=Object.entries(tiers).sort((a,b)=>b[1].rev-a[1].rev);
- 
+
   if(subTypeChart)subTypeChart.destroy();
-  subTypeChart=new Chart(document.getElementById('subTypeChart'),{
-    type:'doughnut',
-    data:{labels:tierEntries.map(([k])=>k),datasets:[{data:tierEntries.map(([,v])=>Math.round(v.rev*100)/100),backgroundColor:tierColors,borderWidth:3,borderColor:'#fff'}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
-  });
+  subTypeChart=new Chart(document.getElementById('subTypeChart'),{type:'doughnut',data:{labels:tierEntries.map(([k])=>k),datasets:[{data:tierEntries.map(([,v])=>Math.round(v.rev*100)/100),backgroundColor:tierColors,borderWidth:3,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
   const subTotal=tierEntries.reduce((s,[,v])=>s+v.rev,0);
   document.getElementById('sub-legend').innerHTML=tierEntries.map(([k,v],i)=>`<span style="display:flex;align-items:center;gap:4px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:3px;background:${tierColors[i%tierColors.length]};flex-shrink:0;display:inline-block"></span>${k} ${subTotal>0?Math.round(v.rev/subTotal*100)+'%':''}</span>`).join('');
- 
+
   const maxSubRev=Math.max(...tierEntries.map(([,v])=>v.rev),1);
   document.getElementById('sub-bars').innerHTML=tierEntries.map(([k,v],i)=>`
     <div class="bar-row">
@@ -710,36 +676,43 @@ function renderSubCharts(subs,from,to) {
       <div class="bar-val">${fmt(v.rev)} · ${v.count.toLocaleString()} payments</div>
     </div>`).join('');
 }
- 
+
 // ── Transactions ─────────────────────────────────────────────────────────────
 function getFiltered() {
   const q=(document.getElementById('filter-q').value||'').toLowerCase();
   return payments.filter(p=>{
-    if(activeStatusFilter!=='all'&&p.status!==activeStatusFilter) return false;
-    if(activeCatFilter!=='all'&&p.category!==activeCatFilter) return false;
-    if(q&&!(p.description+p.email).toLowerCase().includes(q)) return false;
+    if(activeStatusFilter!=='all'&&p.status!==activeStatusFilter)return false;
+    if(activeCatFilter!=='all'&&p.category!==activeCatFilter)return false;
+    if(q&&!(p.description+p.email+(p.itemName||'')).toLowerCase().includes(q))return false;
     return true;
   });
 }
- 
+
 function renderTx() {
   txPage=0;
   currentFiltered=getFiltered();
   document.getElementById('tx-count').textContent=currentFiltered.length.toLocaleString()+' transactions';
   renderTxPage();
 }
- 
+
 function renderTxPage() {
   const slice=currentFiltered.slice(0,100*(txPage+1));
   const list=document.getElementById('tx-list');
   if(!currentFiltered.length){list.innerHTML='<div style="font-size:13px;color:#888;padding:16px 0">No transactions match your filters.</div>';document.getElementById('tx-more').style.display='none';return;}
   const sColor=s=>s==='succeeded'?'#065f46':s==='failed'?'#92400e':'#991b1b';
   const sLabel=s=>s==='succeeded'?'✓ Paid':s==='failed'?'✕ Failed':'↩ Refunded';
+  const confColor=c=>c==='invoice'?'#16a34a':c==='description'?'#f59e0b':'#e5e7eb';
+  const confTitle=c=>c==='invoice'?'Matched from invoice line item':c==='description'?'Matched from charge description/amount':'Could not match to a product';
+
   list.innerHTML=slice.map(p=>{
     const meta=CATEGORY_META[p.category]||{label:p.category,color:'#888'};
+    // Show invoice item name if it differs from the charge description
+    const showItem = p.itemName && p.itemName !== p.description && p.confidence==='invoice';
     return `<div class="tx-row">
+      <span class="confidence-dot" style="background:${confColor(p.confidence)}" title="${confTitle(p.confidence)}"></span>
       <div style="flex:1;min-width:0">
         <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.description||'Unnamed'}</div>
+        ${showItem?`<div class="item-name">Item: ${p.itemName}</div>`:''}
         <div style="font-size:12px;color:#888">${p.email||p.id}</div>
       </div>
       <span class="tag" style="background:${meta.color}22;color:${meta.color}">${meta.label}</span>
@@ -752,19 +725,21 @@ function renderTxPage() {
   if(slice.length<currentFiltered.length){mb.style.display='block';mb.querySelector('button').textContent=`Show more (${(currentFiltered.length-slice.length).toLocaleString()} remaining)`;}
   else mb.style.display='none';
 }
- 
+
 function showMoreTx(){txPage++;renderTxPage();}
- 
+
 // ── CSV Download ─────────────────────────────────────────────────────────────
 function downloadCSV() {
   const filtered=getFiltered();
   if(!filtered.length){alert('No transactions to download with current filters.');return;}
-  const headers=['Date','Description','Email','Category','Status','Amount','Currency','Transaction ID'];
+  const headers=['Date','Description','Invoice Item','Email','Category','Match Source','Status','Amount','Currency','Transaction ID'];
   const rows=filtered.map(p=>[
     p.date.toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'}),
     `"${(p.description||'').replace(/"/g,'""')}"`,
+    `"${(p.itemName||'').replace(/"/g,'""')}"`,
     `"${(p.email||'').replace(/"/g,'""')}"`,
     `"${CATEGORY_META[p.category]?.label||p.category}"`,
+    p.confidence,
     p.status,
     p.amount.toFixed(2),
     p.currency,
@@ -779,38 +754,36 @@ function downloadCSV() {
   a.click();
   URL.revokeObjectURL(url);
 }
- 
+
 // ── AI Summary + Ask ─────────────────────────────────────────────────────────
 async function generateSummary(paid,subs,courses,failed,refunds,net,from,to) {
   const el=document.getElementById('ai-summary');
   const courseBreakdown={};
-  COURSE_RULES.forEach(r=>{
-    const items=courses.filter(p=>p.category===r.key);
-    if(items.length) courseBreakdown[r.label]={count:items.length,rev:Math.round(items.reduce((s,p)=>s+p.amount,0))};
-  });
-  const stats={period:`${from} to ${to}`,paid:paid.length,net:Math.round(net),subscriptions:subs.length,subRevenue:Math.round(subs.reduce((s,p)=>s+p.amount,0)),courses:courses.length,courseRevenue:Math.round(courses.reduce((s,p)=>s+p.amount,0)),failed:failed.length,refunds:refunds.length,courseBreakdown};
-  try {
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:350,messages:[{role:'user',content:`Write a 4-sentence plain-English summary for a membership and course business owner. Include the date range, subscription vs course split, and the top-performing course by revenue. Be warm and specific with numbers. No bullet points. Data: ${JSON.stringify(stats)}`}]})});
+  COURSE_RULES.forEach(r=>{const items=courses.filter(p=>p.category===r.key);if(items.length)courseBreakdown[r.label]={count:items.length,rev:Math.round(items.reduce((s,p)=>s+p.amount,0))};});
+  const invoiceMatched=paid.filter(p=>p.confidence==='invoice').length;
+  const stats={period:`${from} to ${to}`,paid:paid.length,net:Math.round(net),subscriptions:subs.length,subRevenue:Math.round(subs.reduce((s,p)=>s+p.amount,0)),courses:courses.length,courseRevenue:Math.round(courses.reduce((s,p)=>s+p.amount,0)),failed:failed.length,refunds:refunds.length,invoiceMatched,courseBreakdown};
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:350,messages:[{role:'user',content:`Write a 4-sentence plain-English summary for a membership and course business owner. Include the date range, subscription vs course split, and the top-performing course. Be warm and specific with numbers. No bullet points. Data: ${JSON.stringify(stats)}`}]})});
     const d=await r.json();
     el.textContent=d.content.map(i=>i.text||'').join('');
-  } catch(e) {
+  }catch(e){
     el.textContent=`${paid.length.toLocaleString()} successful payments totaling ${fmt(net)} net revenue between ${from} and ${to}. Subscriptions: ${subs.length.toLocaleString()} payments. Course sales: ${courses.length.toLocaleString()} across all programs. ${failed.length.toLocaleString()} failed attempts and ${refunds.length} refunds recorded.`;
   }
 }
- 
+
 function ask(q){document.getElementById('ask-input').value=q;submitAsk();}
-async function submitAsk() {
-  const q=document.getElementById('ask-input').value.trim(); if(!q)return;
+async function submitAsk(){
+  const q=document.getElementById('ask-input').value.trim();if(!q)return;
   const out=document.getElementById('ask-out');
   out.innerHTML='<div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#888"><div class="spinner" style="width:20px;height:20px;border-width:2px"></div>Analyzing...</div>';
-  const from=document.getElementById('date-from').value, to=document.getElementById('date-to').value;
-  const summary=payments.slice(0,80).map(p=>`${p.description||'unnamed'}|${CATEGORY_META[p.category]?.label||p.category}|$${p.amount}|${p.status}|${p.date.toLocaleDateString()}`).join('\n');
-  const totals={total:payments.length,paid:payments.filter(p=>p.status==='succeeded').length,failed:payments.filter(p=>p.status==='failed').length,refunded:payments.filter(p=>p.status==='refunded').length};
-  try {
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:`Answer this question about Stripe data from ${from} to ${to}: "${q}"\nStats: ${JSON.stringify(totals)}\nSample data:\n${summary}\nBe specific and concise. Plain text only.`}]})});
+  const from=document.getElementById('date-from').value,to=document.getElementById('date-to').value;
+  const summary=payments.slice(0,80).map(p=>`${p.itemName||p.description||'unnamed'}|${CATEGORY_META[p.category]?.label||p.category}|$${p.amount}|${p.status}|${p.confidence}|${p.date.toLocaleDateString()}`).join('\n');
+  const totals={total:payments.length,paid:payments.filter(p=>p.status==='succeeded').length,failed:payments.filter(p=>p.status==='failed').length,refunded:payments.filter(p=>p.status==='refunded').length,invoiceMatched:payments.filter(p=>p.confidence==='invoice').length};
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:`Answer this question about Stripe data from ${from} to ${to}: "${q}"\nStats: ${JSON.stringify(totals)}\nSample data (item|category|amount|status|confidence|date):\n${summary}\nBe specific and concise. Plain text only.`}]})});
     const d=await r.json();
     out.innerHTML=`<div class="ai-box">${d.content.map(i=>i.text||'').join('').replace(/\n/g,'<br>')}</div>`;
-  } catch(e){out.innerHTML='<div style="color:#991b1b;font-size:13px">Something went wrong. Please try again.</div>';}
+  }catch(e){out.innerHTML='<div style="color:#991b1b;font-size:13px">Something went wrong. Please try again.</div>';}
 }
 </script>
 </body>
