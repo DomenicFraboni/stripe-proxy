@@ -18,8 +18,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .metric-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
 .metric-value{font-size:24px;font-weight:600}
 .metric-sub{font-size:12px;color:#888;margin-top:3px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
 .grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
 .section-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
 .tab-bar{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid #e5e5e0;flex-wrap:wrap}
 .tab{padding:8px 16px;font-size:14px;cursor:pointer;border:none;background:transparent;color:#888;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;white-space:nowrap}
@@ -29,6 +31,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tx-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0ec;font-size:13px}
 .tx-row:last-child{border-bottom:none}
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:600;white-space:nowrap}
+.badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600;white-space:nowrap;vertical-align:middle;margin-left:3px}
+.badge-new{background:#dcfce7;color:#166534}
+.badge-renewal{background:#dbeafe;color:#1e40af}
+.badge-annual{background:#fef3c7;color:#92400e}
+.badge-monthly{background:#f3e8ff;color:#6b21a8}
 .confidence-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:14px;cursor:pointer;border:1px solid #e5e5e0;background:#fff;color:#333;font-family:inherit}
 .btn:hover{background:#f8f8f5}
@@ -45,6 +52,8 @@ select.input{cursor:pointer}
 .filter-btn{padding:5px 11px;border-radius:6px;border:1px solid #e5e5e0;background:#fff;font-size:12px;cursor:pointer;color:#555;font-family:inherit;white-space:nowrap}
 .filter-btn:hover{background:#f0f0ec}
 .filter-btn.on{border-color:#185FA5;color:#185FA5;background:#eff6ff;font-weight:500}
+.filter-section{margin-bottom:14px}
+.filter-section-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
 .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:13px}
 .bar-label{min-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#333}
 .bar-track{flex:1;background:#f0f0ec;border-radius:4px;height:10px;overflow:hidden}
@@ -62,7 +71,13 @@ select.input{cursor:pointer}
 .ai-box{background:#f8f8f5;border-radius:10px;padding:16px;font-size:14px;line-height:1.7;color:#333}
 .label{display:block;font-size:13px;font-weight:500;color:#555;margin-bottom:6px}
 .item-name{font-size:11px;color:#888;font-style:italic;margin-top:1px}
-@media(max-width:900px){.grid5{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+.divider{width:1px;height:16px;background:#e5e5e0;margin:0 2px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat-box{background:#f8f8f5;border-radius:8px;padding:12px 14px}
+.stat-box-label{font-size:11px;color:#888;margin-bottom:3px}
+.stat-box-value{font-size:18px;font-weight:600}
+.stat-box-sub{font-size:11px;color:#888;margin-top:2px}
+@media(max-width:900px){.grid5,.grid4{grid-template-columns:1fr 1fr}.grid2,.grid3{grid-template-columns:1fr}.stat-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -109,7 +124,7 @@ select.input{cursor:pointer}
           <option value="10000">Up to 10,000</option>
           <option value="25000" selected>All transactions (up to 25,000)</option>
         </select>
-        <div style="font-size:12px;color:#aaa;margin-top:5px">Fetches 100 at a time with live progress. Invoice line items are expanded for accurate product identification.</div>
+        <div style="font-size:12px;color:#aaa;margin-top:5px">Invoice line items and billing intervals are expanded for accurate classification.</div>
       </div>
       <div id="connect-error" style="display:none"></div>
       <button class="btn btn-primary btn-full" onclick="connect()">Load payments →</button>
@@ -185,11 +200,11 @@ select.input{cursor:pointer}
     <button class="tab on" onclick="switchTab(this,'t-overview')">Overview</button>
     <button class="tab" onclick="switchTab(this,'t-transactions')">Transactions</button>
     <button class="tab" onclick="switchTab(this,'t-courses')">Courses</button>
-    <button class="tab" onclick="switchTab(this,'t-subscriptions')">Subscriptions</button>
+    <button class="tab" onclick="switchTab(this,'t-subscriptions')">Memberships</button>
     <button class="tab" onclick="switchTab(this,'t-ask')">Ask Claude</button>
   </div>
 
-  <!-- OVERVIEW -->
+  <!-- OVERVIEW TAB -->
   <div id="t-overview" class="tc on">
     <div class="grid2">
       <div class="card">
@@ -208,23 +223,45 @@ select.input{cursor:pointer}
     </div>
   </div>
 
-  <!-- TRANSACTIONS -->
+  <!-- TRANSACTIONS TAB -->
   <div id="t-transactions" class="tc">
     <div class="card">
-      <div style="margin-bottom:12px">
-        <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Payment status</div>
+      <div class="filter-section">
+        <div class="filter-section-label">Payment status</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px">
-          <button class="filter-btn on" id="sf-all" onclick="setStatusFilter('all',this)">All statuses</button>
-          <button class="filter-btn" id="sf-succeeded" onclick="setStatusFilter('succeeded',this)">✓ Successful</button>
-          <button class="filter-btn" id="sf-failed" onclick="setStatusFilter('failed',this)">✕ Failed</button>
-          <button class="filter-btn" id="sf-refunded" onclick="setStatusFilter('refunded',this)">↩ Refunded</button>
+          <button class="filter-btn on" id="sf-all" onclick="setFilter('status','all',this)">All statuses</button>
+          <button class="filter-btn" id="sf-succeeded" onclick="setFilter('status','succeeded',this)">✓ Successful</button>
+          <button class="filter-btn" id="sf-failed" onclick="setFilter('status','failed',this)">✕ Failed</button>
+          <button class="filter-btn" id="sf-refunded" onclick="setFilter('status','refunded',this)">↩ Refunded</button>
         </div>
       </div>
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Category</div>
+      <div class="filter-section">
+        <div class="filter-section-label">Category</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px" id="cat-filter-buttons"></div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+      <div class="filter-section" id="membership-filters-row" style="display:none">
+        <div class="filter-section-label">Membership type</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <button class="filter-btn on" id="mf-all" onclick="setFilter('membership','all',this)">All memberships</button>
+          <button class="filter-btn" id="mf-annual-new" onclick="setFilter('membership','annual-new',this)">
+            <span class="badge badge-new">NEW</span> Annual
+          </button>
+          <button class="filter-btn" id="mf-annual-renewal" onclick="setFilter('membership','annual-renewal',this)">
+            <span class="badge badge-renewal">RENEWAL</span> Annual
+          </button>
+          <button class="filter-btn" id="mf-monthly-new" onclick="setFilter('membership','monthly-new',this)">
+            <span class="badge badge-new">NEW</span> Monthly
+          </button>
+          <button class="filter-btn" id="mf-monthly-renewal" onclick="setFilter('membership','monthly-renewal',this)">
+            <span class="badge badge-renewal">RENEWAL</span> Monthly
+          </button>
+          <button class="filter-btn" id="mf-annual" onclick="setFilter('membership','annual',this)">Annual (all)</button>
+          <button class="filter-btn" id="mf-monthly" onclick="setFilter('membership','monthly',this)">Monthly (all)</button>
+          <button class="filter-btn" id="mf-new" onclick="setFilter('membership','new-only',this)">New only</button>
+          <button class="filter-btn" id="mf-renewal" onclick="setFilter('membership','renewal-only',this)">Renewals only</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
         <input id="filter-q" oninput="renderTx()" placeholder="Search email, description, or item name..." class="input" style="flex:1;min-width:200px"/>
         <div id="tx-count" style="font-size:13px;color:#888;white-space:nowrap"></div>
         <button class="btn btn-success" onclick="downloadCSV()" style="white-space:nowrap">
@@ -232,7 +269,6 @@ select.input{cursor:pointer}
           Download CSV
         </button>
       </div>
-      <!-- Confidence legend -->
       <div style="display:flex;gap:16px;margin-bottom:14px;font-size:12px;color:#888;flex-wrap:wrap">
         <span style="display:flex;align-items:center;gap:5px"><span class="confidence-dot" style="background:#16a34a"></span>Matched from invoice item</span>
         <span style="display:flex;align-items:center;gap:5px"><span class="confidence-dot" style="background:#f59e0b"></span>Matched from description/amount</span>
@@ -245,7 +281,7 @@ select.input{cursor:pointer}
     </div>
   </div>
 
-  <!-- COURSES -->
+  <!-- COURSES TAB -->
   <div id="t-courses" class="tc">
     <div class="grid2">
       <div class="card">
@@ -259,40 +295,61 @@ select.input{cursor:pointer}
       </div>
     </div>
     <div class="card">
-      <div class="section-label">Course performance — revenue &amp; units sold</div>
+      <div class="section-label">Course performance</div>
       <div id="course-bars"></div>
     </div>
   </div>
 
-  <!-- SUBSCRIPTIONS -->
+  <!-- MEMBERSHIPS TAB -->
   <div id="t-subscriptions" class="tc">
+
+    <!-- Summary stat boxes -->
+    <div id="sub-stat-boxes" class="stat-grid"></div>
+
     <div class="grid2">
       <div class="card">
-        <div class="section-label">Subscription revenue over time</div>
-        <div style="position:relative;height:220px"><canvas id="subTimeChart"></canvas></div>
+        <div class="section-label">New vs renewals over time</div>
+        <div style="position:relative;height:220px"><canvas id="subNewRenChart"></canvas></div>
+        <div style="display:flex;gap:16px;margin-top:10px;font-size:12px">
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#16a34a;display:inline-block"></span>New memberships</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#185FA5;display:inline-block"></span>Renewals</span>
+        </div>
       </div>
       <div class="card">
-        <div class="section-label">Subscription type breakdown</div>
-        <div style="position:relative;height:220px"><canvas id="subTypeChart"></canvas></div>
-        <div id="sub-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:12px;color:#666"></div>
+        <div class="section-label">Annual vs monthly revenue</div>
+        <div style="position:relative;height:220px"><canvas id="subIntervalChart"></canvas></div>
+        <div id="sub-interval-legend" style="display:flex;gap:16px;margin-top:10px;font-size:12px"></div>
       </div>
     </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="section-label">New memberships — product breakdown</div>
+        <div id="sub-new-bars"></div>
+      </div>
+      <div class="card">
+        <div class="section-label">Renewals — product breakdown</div>
+        <div id="sub-renewal-bars"></div>
+      </div>
+    </div>
+
     <div class="card">
-      <div class="section-label">Subscription product breakdown</div>
-      <div id="sub-bars"></div>
+      <div class="section-label">All membership products — revenue</div>
+      <div id="sub-all-bars"></div>
     </div>
   </div>
 
-  <!-- ASK -->
+  <!-- ASK TAB -->
   <div id="t-ask" class="tc">
     <div class="card">
-      <div style="font-size:14px;color:#888;margin-bottom:12px">Ask any question about your payment data for the selected period.</div>
+      <div style="font-size:14px;color:#888;margin-bottom:12px">Ask any question about your payment data.</div>
       <div style="margin-bottom:14px">
-        <button class="chip" onclick="ask('Which course generated the most revenue?')">Top course by revenue</button>
+        <button class="chip" onclick="ask('Which course generated the most revenue?')">Top course</button>
+        <button class="chip" onclick="ask('How many new memberships vs renewals this period?')">New vs renewals</button>
+        <button class="chip" onclick="ask('What is the split between annual and monthly memberships?')">Annual vs monthly</button>
         <button class="chip" onclick="ask('Which course sold the most units?')">Most popular course</button>
-        <button class="chip" onclick="ask('How do subscriptions compare to course sales?')">Subs vs courses</button>
         <button class="chip" onclick="ask('Are there failed payments I should follow up on?')">Failed payments</button>
-        <button class="chip" onclick="ask('What is my refund rate and total refunded?')">Refund rate</button>
+        <button class="chip" onclick="ask('What is my refund rate?')">Refund rate</button>
         <button class="chip" onclick="ask('What is the revenue trend over time?')">Revenue trend</button>
       </div>
       <div style="display:flex;gap:10px">
@@ -309,123 +366,150 @@ select.input{cursor:pointer}
 <script>
 const PROXY = '';
 let payments = [], txPage = 0, currentFiltered = [];
-let catChart, timeChart, courseChart, courseUnitsChart, subTimeChart, subTypeChart;
+let catChart, timeChart, courseChart, courseUnitsChart, subNewRenChart, subIntervalChart;
 let fetchCancelled = false;
-let activeStatusFilter = 'all';
-let activeCatFilter = 'all';
+let activeFilters = { status: 'all', category: 'all', membership: 'all' };
 
-// ── Complete product catalog ─────────────────────────────────────────────────
-// Each rule has: key, label, color, keywords (matched against invoice item name
-// OR charge description), amounts (fallback only when no item name available)
+// ── Product catalog ──────────────────────────────────────────────────────────
 const COURSE_RULES = [
-  { key:'lifting-for-longevity',   label:'Lifting for Longevity',             color:'#0369a1', keywords:['lifting for longevity','lifting for long'],                    amounts:new Set([65,75,85,95,99]) },
-  { key:'strong-healthy-joints',   label:'Strong Healthy Joints',             color:'#0f766e', keywords:['strong healthy joints','strong, healthy joints'],              amounts:new Set([49,53.40,59,69,79]) },
-  { key:'posture-redefined',       label:'Posture Redefined',                 color:'#7c3aed', keywords:['posture redefined'],                                           amounts:new Set([69,89]) },
-  { key:'mobility-foundations',    label:'Mobility Foundations',              color:'#065f46', keywords:['mobility foundation'],                                         amounts:new Set([69,79,85,89,99]) },
-  { key:'pelvic-floor',            label:'Pelvic Floor Foundations',          color:'#9d174d', keywords:['pelvic floor'],                                                amounts:new Set([45,55,65]) },
-  { key:'barefoot',                label:'Barefoot Mini Course',              color:'#92400e', keywords:['barefoot'],                                                    amounts:new Set([30,39,45,55,65]) },
-  { key:'30-days-release',         label:'30 Days of Release & Recovery',     color:'#b45309', keywords:['30 days of release','release and recovery','release & recovery'], amounts:new Set([59,69,79,89]) },
-  { key:'30-days-strength',        label:'30 Days of Strength & Mobility',    color:'#d97706', keywords:['30 days of strength','strength and mobility','strength & mobility'], amounts:new Set([89]) },
-  { key:'move2improve',            label:'Move 2 Improve',                    color:'#166534', keywords:['move 2 improve','move2improve','m2i'],                         amounts:new Set([36,45,49,59,60,79]) },
-  { key:'grateful',                label:'Grateful for My Body',              color:'#4338ca', keywords:['grateful for my body','grateful for my'],                     amounts:new Set([45,60]) },
+  { key:'lifting-for-longevity',   label:'Lifting for Longevity',              color:'#0369a1', keywords:['lifting for longevity','lifting for long'],                         amounts:new Set([65,75,85,95,99]) },
+  { key:'strong-healthy-joints',   label:'Strong Healthy Joints',              color:'#0f766e', keywords:['strong healthy joints','strong, healthy joints'],                   amounts:new Set([49,53.40,59,69,79]) },
+  { key:'posture-redefined',       label:'Posture Redefined',                  color:'#7c3aed', keywords:['posture redefined'],                                                amounts:new Set([69,89]) },
+  { key:'mobility-foundations',    label:'Mobility Foundations',               color:'#065f46', keywords:['mobility foundation'],                                              amounts:new Set([69,79,85,89,99]) },
+  { key:'pelvic-floor',            label:'Pelvic Floor Foundations',           color:'#9d174d', keywords:['pelvic floor'],                                                     amounts:new Set([45,55,65]) },
+  { key:'barefoot',                label:'Barefoot Mini Course',               color:'#92400e', keywords:['barefoot'],                                                         amounts:new Set([30,39,45,55,65]) },
+  { key:'30-days-release',         label:'30 Days of Release & Recovery',      color:'#b45309', keywords:['30 days of release','release and recovery','release & recovery'],   amounts:new Set([59,69,79,89]) },
+  { key:'30-days-strength',        label:'30 Days of Strength & Mobility',     color:'#d97706', keywords:['30 days of strength','strength and mobility','strength & mobility'],amounts:new Set([89]) },
+  { key:'move2improve',            label:'Move 2 Improve',                     color:'#166534', keywords:['move 2 improve','move2improve','m2i'],                              amounts:new Set([36,45,49,59,60,79]) },
+  { key:'grateful',                label:'Grateful for My Body',               color:'#4338ca', keywords:['grateful for my body','grateful for my'],                          amounts:new Set([45,60]) },
 ];
-
 const COURSE_KEYS = COURSE_RULES.map(r => r.key);
 
-const SUB_KEYWORDS = [
-  'membership','subscribe','subscription','annual','monthly',
-  'optimal body','optimal-body','jen annual','jen monthly',
-  'the-optimal-body','optimal_body','jen health membership'
-];
+const SUB_KEYWORDS = ['membership','subscribe','subscription','annual','monthly','optimal body','optimal-body','jen annual','jen monthly','the-optimal-body','optimal_body','jen health membership'];
+const SUB_AMOUNTS = new Set([1,15,19.99,24.99,27,119.95,119.99,129.99,149.99,159.99,161.99,162,179.99,200,215,275]);
 
-const SUB_AMOUNTS = new Set([
-  1, 15, 19.99, 24.99, 27,
-  119.95, 119.99, 129.99, 149.99,
-  159.99, 161.99, 162, 179.99,
-  200, 215, 275
-]);
+// Annual price points — used as amount fallback
+const ANNUAL_AMOUNTS = new Set([119.95,119.99,129.99,149.99,159.99,161.99,162,179.99,200,215,275]);
+const MONTHLY_AMOUNTS = new Set([1,15,19.99,24.99,27]);
 
 const CATEGORY_META = {
-  subscription:           { label:'Subscription',                  color:'#185FA5' },
-  'lifting-for-longevity':{ label:'Lifting for Longevity',         color:'#0369a1' },
-  'strong-healthy-joints':{ label:'Strong Healthy Joints',         color:'#0f766e' },
-  'posture-redefined':    { label:'Posture Redefined',             color:'#7c3aed' },
-  'mobility-foundations': { label:'Mobility Foundations',          color:'#065f46' },
-  'pelvic-floor':         { label:'Pelvic Floor Foundations',      color:'#9d174d' },
-  'barefoot':             { label:'Barefoot Mini Course',          color:'#92400e' },
-  '30-days-release':      { label:'30 Days of Release & Recovery', color:'#b45309' },
-  '30-days-strength':     { label:'30 Days of Strength & Mobility',color:'#d97706' },
-  'move2improve':         { label:'Move 2 Improve',                color:'#166534' },
-  'grateful':             { label:'Grateful for My Body',          color:'#4338ca' },
-  'other-course':         { label:'Other Course',                  color:'#374151' },
-  refund:                 { label:'Refund',                        color:'#991b1b' },
-  failed:                 { label:'Failed',                        color:'#92400e' },
-  other:                  { label:'Other',                         color:'#9ca3af' },
+  subscription:            { label:'Membership',                    color:'#185FA5' },
+  'lifting-for-longevity': { label:'Lifting for Longevity',         color:'#0369a1' },
+  'strong-healthy-joints': { label:'Strong Healthy Joints',         color:'#0f766e' },
+  'posture-redefined':     { label:'Posture Redefined',             color:'#7c3aed' },
+  'mobility-foundations':  { label:'Mobility Foundations',          color:'#065f46' },
+  'pelvic-floor':          { label:'Pelvic Floor Foundations',      color:'#9d174d' },
+  'barefoot':              { label:'Barefoot Mini Course',          color:'#92400e' },
+  '30-days-release':       { label:'30 Days of Release & Recovery', color:'#b45309' },
+  '30-days-strength':      { label:'30 Days of Strength & Mobility',color:'#d97706' },
+  'move2improve':          { label:'Move 2 Improve',                color:'#166534' },
+  'grateful':              { label:'Grateful for My Body',          color:'#4338ca' },
+  'other-course':          { label:'Other Course',                  color:'#374151' },
+  refund:                  { label:'Refund',                        color:'#991b1b' },
+  failed:                  { label:'Failed',                        color:'#92400e' },
+  other:                   { label:'Other',                         color:'#9ca3af' },
 };
 
-// ── Categorization — item name first, then fallback ──────────────────────────
-// confidence: 'invoice' = matched from Stripe invoice line item (most reliable)
-//             'description' = matched from charge description / amount (fallback)
-//             'unmatched' = could not identify
-
-function matchTextToCategory(text) {
+// ── Categorization ───────────────────────────────────────────────────────────
+function matchText(text) {
   if (!text) return null;
   const t = text.toLowerCase();
-  // Check subscription keywords
   if (SUB_KEYWORDS.some(k => t.includes(k))) return 'subscription';
-  // Check each course
   for (const rule of COURSE_RULES) {
     if (rule.keywords.some(k => t.includes(k))) return rule.key;
   }
-  // Generic course/class fallback
   if (['course','class','workshop','program','challenge','training','certificate'].some(k => t.includes(k))) return 'other-course';
   return null;
 }
 
-function categorizePayment(p) {
-  if (p.status === 'refunded') return { category:'refund', confidence:'invoice', itemName:'' };
-  if (p.status === 'failed')   return { category:'failed', confidence:'invoice', itemName:'' };
+function detectInterval(inv) {
+  // Signal 1: billing_reason (most reliable)
+  // Signal 2: price.recurring.interval from invoice lines
+  // Signal 3: amount-based fallback
+  let interval = null; // 'year' | 'month' | null
+  let billingReason = null; // 'subscription_create' | 'subscription_cycle' | null
 
-  // 1. Try invoice line items first (most reliable — actual product name from Stripe)
-  if (p.invoiceItems && p.invoiceItems.length > 0) {
-    for (const item of p.invoiceItems) {
-      const cat = matchTextToCategory(item);
-      if (cat) return { category:cat, confidence:'invoice', itemName:item };
+  if (inv && typeof inv === 'object') {
+    billingReason = inv.billing_reason || null;
+    const lines = inv.lines;
+    if (lines && lines.data) {
+      for (const line of lines.data) {
+        const recur = line.price?.recurring || line.plan;
+        if (recur && recur.interval) {
+          interval = recur.interval; // 'month' or 'year'
+          break;
+        }
+      }
     }
   }
-
-  // 2. Try charge description
-  const descCat = matchTextToCategory(p.description);
-  if (descCat) return { category:descCat, confidence:'description', itemName:p.description };
-
-  // 3. Amount-based fallback for subscriptions
-  if (SUB_AMOUNTS.has(p.amount) && p.hasInvoice) return { category:'subscription', confidence:'description', itemName:'' };
-
-  // 4. Amount-based fallback for courses (only if not a known sub amount)
-  if (!SUB_AMOUNTS.has(p.amount)) {
-    for (const rule of COURSE_RULES) {
-      if (rule.amounts.has(p.amount)) return { category:rule.key, confidence:'description', itemName:'' };
-    }
-  }
-
-  return { category:'other', confidence:'unmatched', itemName:'' };
+  return { interval, billingReason };
 }
 
-// ── Build category filter buttons ────────────────────────────────────────────
+function categorizePayment(p) {
+  if (p.status === 'refunded') return { category:'refund', confidence:'invoice', itemName:'', interval:null, billingReason:null };
+  if (p.status === 'failed')   return { category:'failed', confidence:'invoice', itemName:'', interval:null, billingReason:null };
+
+  let category = null, confidence = 'unmatched', itemName = '';
+  const inv = p._rawInvoice;
+  const { interval: detectedInterval, billingReason } = detectInterval(inv);
+
+  // 1. Invoice line items
+  if (p.invoiceItems.length > 0) {
+    for (const item of p.invoiceItems) {
+      const cat = matchText(item);
+      if (cat) { category = cat; confidence = 'invoice'; itemName = item; break; }
+    }
+  }
+
+  // 2. Charge description
+  if (!category) {
+    const cat = matchText(p.description);
+    if (cat) { category = cat; confidence = 'description'; itemName = p.description; }
+  }
+
+  // 3. Amount fallback
+  if (!category) {
+    if (SUB_AMOUNTS.has(p.amount) && p.hasInvoice) { category = 'subscription'; confidence = 'description'; }
+    else if (!SUB_AMOUNTS.has(p.amount)) {
+      for (const rule of COURSE_RULES) {
+        if (rule.amounts.has(p.amount)) { category = rule.key; confidence = 'description'; break; }
+      }
+    }
+  }
+
+  if (!category) category = 'other';
+
+  // Determine billing interval for subscriptions
+  let finalInterval = detectedInterval;
+  if (category === 'subscription' && !finalInterval) {
+    // Fallback: infer from amount
+    if (ANNUAL_AMOUNTS.has(p.amount)) finalInterval = 'year';
+    else if (MONTHLY_AMOUNTS.has(p.amount)) finalInterval = 'month';
+    // Infer from item name text
+    const nameText = (itemName + ' ' + p.description).toLowerCase();
+    if (!finalInterval) {
+      if (nameText.includes('annual') || nameText.includes('yearly') || nameText.includes('per year')) finalInterval = 'year';
+      else if (nameText.includes('monthly') || nameText.includes('per month')) finalInterval = 'month';
+    }
+  }
+
+  return { category, confidence, itemName, interval: finalInterval, billingReason };
+}
+
+// ── UI helpers ───────────────────────────────────────────────────────────────
 function buildCatFilterButtons() {
-  const allCats = [
+  const cats = [
     { key:'all', label:'All categories' },
-    { key:'subscription', label:'Subscriptions' },
+    { key:'subscription', label:'Memberships' },
     ...COURSE_RULES.map(r => ({ key:r.key, label:r.label })),
     { key:'other-course', label:'Other Course' },
     { key:'other', label:'Other' },
   ];
-  document.getElementById('cat-filter-buttons').innerHTML = allCats.map(c =>
-    `<button class="filter-btn${c.key==='all'?' on':''}" id="cf-${c.key}" onclick="setCatFilter('${c.key}',this)">${c.label}</button>`
+  document.getElementById('cat-filter-buttons').innerHTML = cats.map(c =>
+    `<button class="filter-btn${c.key==='all'?' on':''}" id="cf-${c.key}" onclick="setFilter('category','${c.key}',this)">${c.label}</button>`
   ).join('');
 }
 
-// ── Utilities ────────────────────────────────────────────────────────────────
 function today() { return new Date().toISOString().split('T')[0]; }
 function daysAgo(n) { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split('T')[0]; }
 function toUnix(s) { return Math.floor(new Date(s+'T00:00:00').getTime()/1000); }
@@ -445,10 +529,21 @@ buildCatFilterButtons();
 
 function showDatePicker() { const dp=document.getElementById('date-picker-inline'); dp.style.display=dp.style.display==='none'?'block':'none'; document.getElementById('date-from2').value=document.getElementById('date-from').value; document.getElementById('date-to2').value=document.getElementById('date-to').value; }
 async function refetch() { document.getElementById('date-from').value=document.getElementById('date-from2').value; document.getElementById('date-to').value=document.getElementById('date-to2').value; document.getElementById('pay-limit').value=document.getElementById('pay-limit2').value; document.getElementById('date-picker-inline').style.display='none'; await fetchAndRender(); }
-function setStatusFilter(val,el) { activeStatusFilter=val; document.querySelectorAll('[id^="sf-"]').forEach(b=>b.classList.remove('on')); el.classList.add('on'); renderTx(); }
-function setCatFilter(val,el) { activeCatFilter=val; document.querySelectorAll('[id^="cf-"]').forEach(b=>b.classList.remove('on')); el.classList.add('on'); renderTx(); }
 
-// ── Connect / Fetch ──────────────────────────────────────────────────────────
+function setFilter(type, val, el) {
+  activeFilters[type] = val;
+  const prefix = type==='status'?'sf-':type==='category'?'cf-':'mf-';
+  document.querySelectorAll(`[id^="${prefix}"]`).forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  // Show/hide membership sub-filters when memberships category selected
+  if (type === 'category') {
+    document.getElementById('membership-filters-row').style.display = (val==='subscription'||val==='all') ? 'block' : 'none';
+    if (val !== 'subscription') { activeFilters.membership = 'all'; document.getElementById('mf-all')?.classList.add('on'); }
+  }
+  renderTx();
+}
+
+// ── Fetch ────────────────────────────────────────────────────────────────────
 async function connect() {
   const from=document.getElementById('date-from').value, to=document.getElementById('date-to').value;
   const errEl=document.getElementById('connect-error'); errEl.style.display='none';
@@ -489,11 +584,8 @@ async function fetchAndRender() {
   if(errorMsg){show('screen-connect');const errEl=document.getElementById('connect-error');errEl.innerHTML=`<div class="error-box"><strong>Error:</strong> ${errorMsg}</div>`;errEl.style.display='block';document.getElementById('topbar-status').textContent='Error';return;}
 
   document.getElementById('load-msg').textContent='Categorizing payments...';
-  document.getElementById('load-detail').textContent=allCharges.length.toLocaleString()+' transactions — reading invoice items';
 
-  // Normalize: extract invoice line item descriptions when available
   payments = allCharges.map(c => {
-    // Collect all invoice line item descriptions
     const invoiceItems = [];
     const inv = c.invoice;
     if (inv && typeof inv === 'object') {
@@ -501,32 +593,28 @@ async function fetchAndRender() {
       if (lines && lines.data) {
         lines.data.forEach(line => {
           if (line.description) invoiceItems.push(line.description);
-          if (line.price && line.price.nickname) invoiceItems.push(line.price.nickname);
-          if (line.plan && line.plan.nickname) invoiceItems.push(line.plan.nickname);
+          if (line.price?.nickname) invoiceItems.push(line.price.nickname);
+          if (line.plan?.nickname) invoiceItems.push(line.plan.nickname);
         });
       }
-      // Also check invoice description
       if (inv.description) invoiceItems.push(inv.description);
     }
 
     const p = {
-      id: c.id,
-      amount: c.amount/100,
-      currency: (c.currency||'usd').toUpperCase(),
-      status: c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
-      description: c.description||c.statement_descriptor||'',
-      email: c.customer?.email||c.billing_details?.email||c.receipt_email||'',
-      date: new Date(c.created*1000),
-      hasInvoice: !!(c.invoice),
+      id:c.id, amount:c.amount/100,
+      currency:(c.currency||'usd').toUpperCase(),
+      status:c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
+      description:c.description||c.statement_descriptor||'',
+      email:c.customer?.email||c.billing_details?.email||c.receipt_email||'',
+      date:new Date(c.created*1000),
+      hasInvoice:!!(c.invoice),
       invoiceItems,
-      category: 'other',
-      confidence: 'unmatched',
-      itemName: '',
+      _rawInvoice: (inv && typeof inv==='object') ? inv : null,
+      category:'other', confidence:'unmatched', itemName:'', interval:null, billingReason:null,
     };
     const result = categorizePayment(p);
-    p.category = result.category;
-    p.confidence = result.confidence;
-    p.itemName = result.itemName;
+    Object.assign(p, result);
+    delete p._rawInvoice;
     return p;
   });
 
@@ -534,43 +622,35 @@ async function fetchAndRender() {
   show('screen-dash');
 }
 
-// ── Dashboard render ─────────────────────────────────────────────────────────
+// ── Dashboard ────────────────────────────────────────────────────────────────
 function renderDashboard(from, to, total, truncated) {
   const paid    = payments.filter(p=>p.status==='succeeded');
   const refunds = payments.filter(p=>p.status==='refunded');
   const failed  = payments.filter(p=>p.status==='failed');
-  const subs    = payments.filter(p=>p.category==='subscription'&&p.status==='succeeded');
-  const courses = payments.filter(p=>COURSE_KEYS.includes(p.category)&&p.status==='succeeded');
+  const subs    = paid.filter(p=>p.category==='subscription');
+  const courses = paid.filter(p=>COURSE_KEYS.includes(p.category));
   const netRev  = paid.reduce((s,p)=>s+p.amount,0) - refunds.reduce((s,p)=>s+p.amount,0);
   const refundAmt = refunds.reduce((s,p)=>s+p.amount,0);
   const unmatched = paid.filter(p=>p.confidence==='unmatched'&&p.category==='other');
+  const invoiceMatched = paid.filter(p=>p.confidence==='invoice').length;
+  const descMatched    = paid.filter(p=>p.confidence==='description').length;
 
   const ff=new Date(from+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   const tf=new Date(to+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   document.getElementById('dash-subtitle').textContent=`${ff} – ${tf}  ·  ${total.toLocaleString()} transactions`;
   document.getElementById('topbar-status').textContent=`${ff} – ${tf}`;
 
-  // Matched from invoice vs description stats
-  const invoiceMatched = paid.filter(p=>p.confidence==='invoice').length;
-  const descMatched    = paid.filter(p=>p.confidence==='description').length;
-  const unmatchedCount = unmatched.length;
-
   const tn=document.getElementById('truncated-notice');
-  if(truncated){tn.textContent='Your date range has more than '+parseInt(document.getElementById('pay-limit').value).toLocaleString()+' transactions. Increase the limit or narrow your range.';tn.style.display='block';}
-  else tn.style.display='none';
+  if(truncated){tn.textContent='Your date range has more than '+parseInt(document.getElementById('pay-limit').value).toLocaleString()+' transactions. Increase the limit or narrow your range.';tn.style.display='block';}else tn.style.display='none';
 
   const un=document.getElementById('unmatched-notice');
-  if(unmatchedCount>0){
-    const pct=Math.round(unmatchedCount/paid.length*100);
-    un.textContent=`${unmatchedCount.toLocaleString()} paid transactions (${pct}%) could not be matched to a specific product. ${invoiceMatched.toLocaleString()} were identified from invoice line items (highest confidence), and ${descMatched.toLocaleString()} from charge descriptions.`;
-    un.style.display='block';
-  } else un.style.display='none';
+  if(unmatched.length>0){const pct=Math.round(unmatched.length/paid.length*100);un.textContent=`${unmatched.length.toLocaleString()} paid transactions (${pct}%) could not be matched to a specific product. ${invoiceMatched.toLocaleString()} matched from invoice items (highest confidence), ${descMatched.toLocaleString()} from descriptions.`;un.style.display='block';}else un.style.display='none';
 
   document.getElementById('metrics-row').innerHTML=`
     <div class="metric"><div class="metric-label">Net revenue</div><div class="metric-value">${fmt(netRev)}</div><div class="metric-sub">${fmt(refundAmt)} refunded</div></div>
     <div class="metric"><div class="metric-label">Successful</div><div class="metric-value">${paid.length.toLocaleString()}</div><div class="metric-sub">${fmt(paid.reduce((s,p)=>s+p.amount,0))}</div></div>
     <div class="metric"><div class="metric-label">Failed</div><div class="metric-value" style="color:#92400e">${failed.length.toLocaleString()}</div><div class="metric-sub">not collected</div></div>
-    <div class="metric"><div class="metric-label">Subscriptions</div><div class="metric-value">${subs.length.toLocaleString()}</div><div class="metric-sub">${fmt(subs.reduce((s,p)=>s+p.amount,0))}</div></div>
+    <div class="metric"><div class="metric-label">Memberships</div><div class="metric-value">${subs.length.toLocaleString()}</div><div class="metric-sub">${fmt(subs.reduce((s,p)=>s+p.amount,0))}</div></div>
     <div class="metric"><div class="metric-label">Course sales</div><div class="metric-value">${courses.length.toLocaleString()}</div><div class="metric-sub">${fmt(courses.reduce((s,p)=>s+p.amount,0))}</div></div>`;
 
   renderCatChart(paid);
@@ -593,9 +673,7 @@ function renderCatChart(paid) {
 }
 
 function renderTimeChart(paid,from,to) {
-  const days=(new Date(to)-new Date(from))/(1000*60*60*24);
-  const useMonth=days>60;
-  const byPeriod={};
+  const days=(new Date(to)-new Date(from))/(1000*60*60*24), useMonth=days>60, byPeriod={};
   paid.forEach(p=>{const k=useMonth?p.date.toLocaleDateString('en-US',{month:'short',year:'2-digit'}):p.date.toLocaleDateString('en-US',{month:'short',day:'numeric'});byPeriod[k]=(byPeriod[k]||0)+p.amount;});
   const sorted=Object.entries(byPeriod);
   if(timeChart)timeChart.destroy();
@@ -603,94 +681,130 @@ function renderTimeChart(paid,from,to) {
 }
 
 function renderCourseCharts(courses) {
-  const byKey={};
-  COURSE_KEYS.forEach(k=>byKey[k]={rev:0,count:0});
+  const byKey={}; COURSE_KEYS.forEach(k=>byKey[k]={rev:0,count:0});
   courses.forEach(p=>{if(byKey[p.category]){byKey[p.category].rev+=p.amount;byKey[p.category].count++;}});
   const entries=Object.entries(byKey).filter(([,v])=>v.rev>0).sort((a,b)=>b[1].rev-a[1].rev);
-
   if(courseChart)courseChart.destroy();
   courseChart=new Chart(document.getElementById('courseChart'),{type:'doughnut',data:{labels:entries.map(([k])=>CATEGORY_META[k]?.label||k),datasets:[{data:entries.map(([,v])=>Math.round(v.rev*100)/100),backgroundColor:entries.map(([k])=>CATEGORY_META[k]?.color||'#888'),borderWidth:3,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
   const total=entries.reduce((s,[,v])=>s+v.rev,0);
   document.getElementById('course-legend').innerHTML=entries.map(([k,v])=>`<span style="display:flex;align-items:center;gap:4px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:3px;background:${CATEGORY_META[k]?.color||'#888'};flex-shrink:0;display:inline-block"></span>${CATEGORY_META[k]?.label||k} ${total>0?Math.round(v.rev/total*100)+'%':''}</span>`).join('');
-
   const unitH=Math.max(entries.length*44+60,200);
   document.getElementById('courseUnitsWrap').style.height=unitH+'px';
   if(courseUnitsChart)courseUnitsChart.destroy();
   courseUnitsChart=new Chart(document.getElementById('courseUnitsChart'),{type:'bar',data:{labels:entries.map(([k])=>CATEGORY_META[k]?.label||k),datasets:[{data:entries.map(([,v])=>v.count),backgroundColor:entries.map(([k])=>CATEGORY_META[k]?.color||'#888'),borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'#f0f0ec'},ticks:{font:{size:11}}},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
-
   const maxRev=Math.max(...entries.map(([,v])=>v.rev),1);
-  document.getElementById('course-bars').innerHTML=entries.map(([k,v])=>`
-    <div class="bar-row">
-      <div class="bar-label">${CATEGORY_META[k]?.label||k}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v.rev/maxRev*100)}%;background:${CATEGORY_META[k]?.color||'#888'}"></div></div>
-      <div class="bar-val">${fmt(v.rev)} · ${v.count.toLocaleString()} sold</div>
-    </div>`).join('');
+  document.getElementById('course-bars').innerHTML=entries.map(([k,v])=>`<div class="bar-row"><div class="bar-label">${CATEGORY_META[k]?.label||k}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(v.rev/maxRev*100)}%;background:${CATEGORY_META[k]?.color||'#888'}"></div></div><div class="bar-val">${fmt(v.rev)} · ${v.count.toLocaleString()} sold</div></div>`).join('');
 }
 
-function renderSubCharts(subs,from,to) {
-  const days=(new Date(to)-new Date(from))/(1000*60*60*24);
-  const useMonth=days>60;
-  const byPeriod={};
-  subs.forEach(p=>{const k=useMonth?p.date.toLocaleDateString('en-US',{month:'short',year:'2-digit'}):p.date.toLocaleDateString('en-US',{month:'short',day:'numeric'});byPeriod[k]=(byPeriod[k]||0)+p.amount;});
-  const sorted=Object.entries(byPeriod);
-  if(subTimeChart)subTimeChart.destroy();
-  subTimeChart=new Chart(document.getElementById('subTimeChart'),{type:'line',data:{labels:sorted.map(e=>e[0]),datasets:[{data:sorted.map(e=>Math.round(e[1]*100)/100),borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,.08)',fill:true,tension:.3,pointRadius:sorted.length>30?0:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11},maxTicksLimit:10}},y:{grid:{color:'#f0f0ec'},ticks:{font:{size:11},callback:v=>'$'+v.toLocaleString()}}}}});
+function renderSubCharts(subs, from, to) {
+  const isNew     = p => p.billingReason==='subscription_create';
+  const isRenewal = p => p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update';
+  const isAnnual  = p => p.interval==='year';
+  const isMonthly = p => p.interval==='month';
 
-  const tierFn=amt=>{
-    if(amt===24.99)return 'Jen Monthly ($24.99/mo)';
-    if(amt===19.99)return 'Optimal Body Monthly ($19.99/mo)';
-    if(amt===27)return 'Optimal Body Monthly ($27/mo)';
-    if(amt===15)return 'Optimal Body Monthly ($15/mo)';
-    if(amt===1)return 'Trial / Test ($1)';
-    if([119.95,119.99,129.99,149.99,159.99].includes(amt))return 'Jen Annual Membership';
-    if([161.99,162].includes(amt))return 'Optimal Body Annual (15% off)';
-    if(amt===179.99)return 'Jen Annual Membership ($179.99)';
-    if(amt===200)return 'Optimal Body Annual ($200)';
-    if(amt===215)return 'Annual Membership ($215)';
-    if(amt===275)return 'Optimal Body Annual ($275)';
-    return 'Other subscription';
-  };
+  const newSubs      = subs.filter(isNew);
+  const renewals     = subs.filter(isRenewal);
+  const unknownType  = subs.filter(p=>!isNew(p)&&!isRenewal(p));
+  const annualSubs   = subs.filter(isAnnual);
+  const monthlySubs  = subs.filter(isMonthly);
+  const annualRev    = annualSubs.reduce((s,p)=>s+p.amount,0);
+  const monthlyRev   = monthlySubs.reduce((s,p)=>s+p.amount,0);
+  const newRev       = newSubs.reduce((s,p)=>s+p.amount,0);
+  const renewalRev   = renewals.reduce((s,p)=>s+p.amount,0);
 
-  // Use invoice item name if available for subscription product labeling
-  const tiers={};
-  subs.forEach(p=>{
-    let tier = p.itemName && p.confidence==='invoice' ? p.itemName : tierFn(p.amount);
-    // Clean up long item names
-    if(tier.length>40) tier=tier.substring(0,40)+'…';
-    if(!tiers[tier])tiers[tier]={rev:0,count:0};
-    tiers[tier].rev+=p.amount;tiers[tier].count++;
+  // Stat boxes
+  document.getElementById('sub-stat-boxes').innerHTML=`
+    <div class="stat-box"><div class="stat-box-label">New memberships</div><div class="stat-box-value">${newSubs.length.toLocaleString()}</div><div class="stat-box-sub">${fmt(newRev)}</div></div>
+    <div class="stat-box"><div class="stat-box-label">Renewals</div><div class="stat-box-value">${renewals.length.toLocaleString()}</div><div class="stat-box-sub">${fmt(renewalRev)}</div></div>
+    <div class="stat-box"><div class="stat-box-label">Unknown type</div><div class="stat-box-value">${unknownType.length.toLocaleString()}</div><div class="stat-box-sub">no billing_reason</div></div>
+    <div class="stat-box"><div class="stat-box-label">Annual memberships</div><div class="stat-box-value">${annualSubs.length.toLocaleString()}</div><div class="stat-box-sub">${fmt(annualRev)}</div></div>
+    <div class="stat-box"><div class="stat-box-label">Monthly memberships</div><div class="stat-box-value">${monthlySubs.length.toLocaleString()}</div><div class="stat-box-sub">${fmt(monthlyRev)}</div></div>
+    <div class="stat-box"><div class="stat-box-label">Avg annual value</div><div class="stat-box-value">${annualSubs.length>0?fmt(annualRev/annualSubs.length):'—'}</div><div class="stat-box-sub">per payment</div></div>`;
+
+  // New vs renewals over time
+  const days=(new Date(to)-new Date(from))/(1000*60*60*24), useMonth=days>60;
+  const periodKey = p => useMonth ? p.date.toLocaleDateString('en-US',{month:'short',year:'2-digit'}) : p.date.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const allPeriods = [...new Set(subs.map(periodKey))].sort();
+  const newByP={}, renByP={};
+  allPeriods.forEach(k=>{newByP[k]=0;renByP[k]=0;});
+  newSubs.forEach(p=>{const k=periodKey(p);if(newByP[k]!==undefined)newByP[k]+=p.amount;});
+  renewals.forEach(p=>{const k=periodKey(p);if(renByP[k]!==undefined)renByP[k]+=p.amount;});
+
+  if(subNewRenChart)subNewRenChart.destroy();
+  subNewRenChart=new Chart(document.getElementById('subNewRenChart'),{
+    type:'bar',
+    data:{labels:allPeriods,datasets:[
+      {label:'New',data:allPeriods.map(k=>Math.round(newByP[k]*100)/100),backgroundColor:'#16a34a',borderRadius:3,borderSkipped:false},
+      {label:'Renewals',data:allPeriods.map(k=>Math.round(renByP[k]*100)/100),backgroundColor:'#185FA5',borderRadius:3,borderSkipped:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10},maxTicksLimit:10}},y:{stacked:true,grid:{color:'#f0f0ec'},ticks:{font:{size:10},callback:v=>'$'+v.toLocaleString()}}}}
   });
-  const tierColors=['#185FA5','#378ADD','#85B7EB','#0f766e','#34d399','#7c3aed','#a78bfa','#b45309','#fbbf24','#374151'];
-  const tierEntries=Object.entries(tiers).sort((a,b)=>b[1].rev-a[1].rev);
 
-  if(subTypeChart)subTypeChart.destroy();
-  subTypeChart=new Chart(document.getElementById('subTypeChart'),{type:'doughnut',data:{labels:tierEntries.map(([k])=>k),datasets:[{data:tierEntries.map(([,v])=>Math.round(v.rev*100)/100),backgroundColor:tierColors,borderWidth:3,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
-  const subTotal=tierEntries.reduce((s,[,v])=>s+v.rev,0);
-  document.getElementById('sub-legend').innerHTML=tierEntries.map(([k,v],i)=>`<span style="display:flex;align-items:center;gap:4px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:3px;background:${tierColors[i%tierColors.length]};flex-shrink:0;display:inline-block"></span>${k} ${subTotal>0?Math.round(v.rev/subTotal*100)+'%':''}</span>`).join('');
+  // Annual vs monthly donut
+  const intervalData=[{l:'Annual',v:annualRev,c:'#185FA5'},{l:'Monthly',v:monthlyRev,c:'#0f766e'}].filter(d=>d.v>0);
+  if(subIntervalChart)subIntervalChart.destroy();
+  subIntervalChart=new Chart(document.getElementById('subIntervalChart'),{
+    type:'doughnut',
+    data:{labels:intervalData.map(d=>d.l),datasets:[{data:intervalData.map(d=>Math.round(d.v*100)/100),backgroundColor:intervalData.map(d=>d.c),borderWidth:3,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+  });
+  const intTotal=intervalData.reduce((s,d)=>s+d.v,0);
+  document.getElementById('sub-interval-legend').innerHTML=intervalData.map(d=>`<span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:${d.c};display:inline-block"></span>${d.l} ${intTotal>0?Math.round(d.v/intTotal*100)+'%':''} · ${fmt(d.v)}</span>`).join('');
 
-  const maxSubRev=Math.max(...tierEntries.map(([,v])=>v.rev),1);
-  document.getElementById('sub-bars').innerHTML=tierEntries.map(([k,v],i)=>`
-    <div class="bar-row">
-      <div class="bar-label">${k}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v.rev/maxSubRev*100)}%;background:${tierColors[i%tierColors.length]}"></div></div>
-      <div class="bar-val">${fmt(v.rev)} · ${v.count.toLocaleString()} payments</div>
-    </div>`).join('');
+  // Product breakdown bars helper
+  function productBars(subset, elId) {
+    const map={};
+    subset.forEach(p=>{
+      let name = p.itemName && p.confidence==='invoice' ? p.itemName : null;
+      if (!name) {
+        if(p.interval==='year') name='Annual Membership';
+        else if(p.interval==='month') name='Monthly Membership';
+        else name='Membership';
+      }
+      if(name.length>45) name=name.substring(0,45)+'…';
+      if(!map[name])map[name]={rev:0,count:0};
+      map[name].rev+=p.amount;map[name].count++;
+    });
+    const entries=Object.entries(map).sort((a,b)=>b[1].rev-a[1].rev).slice(0,10);
+    const max=Math.max(...entries.map(([,v])=>v.rev),1);
+    const colors=['#185FA5','#378ADD','#85B7EB','#0f766e','#34d399','#7c3aed','#a78bfa','#b45309','#fbbf24','#374151'];
+    document.getElementById(elId).innerHTML=entries.length===0
+      ? '<div style="font-size:13px;color:#888;padding:8px 0">No data for this period.</div>'
+      : entries.map(([k,v],i)=>`<div class="bar-row"><div class="bar-label">${k}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(v.rev/max*100)}%;background:${colors[i%colors.length]}"></div></div><div class="bar-val">${fmt(v.rev)} · ${v.count.toLocaleString()}</div></div>`).join('');
+  }
+
+  productBars(newSubs, 'sub-new-bars');
+  productBars(renewals, 'sub-renewal-bars');
+  productBars(subs, 'sub-all-bars');
 }
 
 // ── Transactions ─────────────────────────────────────────────────────────────
-function getFiltered() {
+function passesFilter(p) {
+  const { status, category, membership } = activeFilters;
+  if (status!=='all' && p.status!==status) return false;
+  if (category!=='all' && p.category!==category) return false;
+  if (p.category==='subscription' && membership!=='all') {
+    const isNew     = p.billingReason==='subscription_create';
+    const isRenewal = p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update';
+    const isAnnual  = p.interval==='year';
+    const isMonthly = p.interval==='month';
+    if (membership==='annual-new'     && !(isAnnual && isNew))     return false;
+    if (membership==='annual-renewal' && !(isAnnual && isRenewal)) return false;
+    if (membership==='monthly-new'    && !(isMonthly && isNew))    return false;
+    if (membership==='monthly-renewal'&& !(isMonthly && isRenewal))return false;
+    if (membership==='annual'         && !isAnnual)                return false;
+    if (membership==='monthly'        && !isMonthly)               return false;
+    if (membership==='new-only'       && !isNew)                   return false;
+    if (membership==='renewal-only'   && !isRenewal)               return false;
+  }
   const q=(document.getElementById('filter-q').value||'').toLowerCase();
-  return payments.filter(p=>{
-    if(activeStatusFilter!=='all'&&p.status!==activeStatusFilter)return false;
-    if(activeCatFilter!=='all'&&p.category!==activeCatFilter)return false;
-    if(q&&!(p.description+p.email+(p.itemName||'')).toLowerCase().includes(q))return false;
-    return true;
-  });
+  if (q && !(p.description+p.email+(p.itemName||'')).toLowerCase().includes(q)) return false;
+  return true;
 }
 
 function renderTx() {
   txPage=0;
-  currentFiltered=getFiltered();
+  currentFiltered=payments.filter(passesFilter);
   document.getElementById('tx-count').textContent=currentFiltered.length.toLocaleString()+' transactions';
   renderTxPage();
 }
@@ -702,16 +816,23 @@ function renderTxPage() {
   const sColor=s=>s==='succeeded'?'#065f46':s==='failed'?'#92400e':'#991b1b';
   const sLabel=s=>s==='succeeded'?'✓ Paid':s==='failed'?'✕ Failed':'↩ Refunded';
   const confColor=c=>c==='invoice'?'#16a34a':c==='description'?'#f59e0b':'#e5e7eb';
-  const confTitle=c=>c==='invoice'?'Matched from invoice line item':c==='description'?'Matched from charge description/amount':'Could not match to a product';
+  const confTitle=c=>c==='invoice'?'Matched from invoice line item':c==='description'?'Matched from description/amount':'Could not match to a product';
 
   list.innerHTML=slice.map(p=>{
     const meta=CATEGORY_META[p.category]||{label:p.category,color:'#888'};
-    // Show invoice item name if it differs from the charge description
-    const showItem = p.itemName && p.itemName !== p.description && p.confidence==='invoice';
+    const showItem=p.itemName&&p.itemName!==p.description&&p.confidence==='invoice';
+    // Membership badges
+    let memBadges='';
+    if(p.category==='subscription'){
+      if(p.interval==='year') memBadges+=`<span class="badge badge-annual">ANNUAL</span>`;
+      else if(p.interval==='month') memBadges+=`<span class="badge badge-monthly">MONTHLY</span>`;
+      if(p.billingReason==='subscription_create') memBadges+=`<span class="badge badge-new">NEW</span>`;
+      else if(p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update') memBadges+=`<span class="badge badge-renewal">RENEWAL</span>`;
+    }
     return `<div class="tx-row">
       <span class="confidence-dot" style="background:${confColor(p.confidence)}" title="${confTitle(p.confidence)}"></span>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.description||'Unnamed'}</div>
+        <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.description||'Unnamed'}${memBadges}</div>
         ${showItem?`<div class="item-name">Item: ${p.itemName}</div>`:''}
         <div style="font-size:12px;color:#888">${p.email||p.id}</div>
       </div>
@@ -730,44 +851,41 @@ function showMoreTx(){txPage++;renderTxPage();}
 
 // ── CSV Download ─────────────────────────────────────────────────────────────
 function downloadCSV() {
-  const filtered=getFiltered();
+  const filtered=payments.filter(passesFilter);
   if(!filtered.length){alert('No transactions to download with current filters.');return;}
-  const headers=['Date','Description','Invoice Item','Email','Category','Match Source','Status','Amount','Currency','Transaction ID'];
+  const headers=['Date','Description','Invoice Item','Email','Category','Membership Type','New or Renewal','Match Source','Status','Amount','Currency','Transaction ID'];
   const rows=filtered.map(p=>[
     p.date.toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'}),
     `"${(p.description||'').replace(/"/g,'""')}"`,
     `"${(p.itemName||'').replace(/"/g,'""')}"`,
     `"${(p.email||'').replace(/"/g,'""')}"`,
     `"${CATEGORY_META[p.category]?.label||p.category}"`,
-    p.confidence,
-    p.status,
-    p.amount.toFixed(2),
-    p.currency,
-    p.id
+    p.category==='subscription'?(p.interval==='year'?'Annual':p.interval==='month'?'Monthly':'Unknown'):'',
+    p.category==='subscription'?(p.billingReason==='subscription_create'?'New':p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update'?'Renewal':'Unknown'):'',
+    p.confidence, p.status, p.amount.toFixed(2), p.currency, p.id
   ]);
   const csv=[headers.join(','),...rows.map(r=>r.join(','))].join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
+  const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url;
   a.download=`jen-health-payments-${document.getElementById('date-from').value}-to-${document.getElementById('date-to').value}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  a.click(); URL.revokeObjectURL(url);
 }
 
-// ── AI Summary + Ask ─────────────────────────────────────────────────────────
+// ── AI ────────────────────────────────────────────────────────────────────────
 async function generateSummary(paid,subs,courses,failed,refunds,net,from,to) {
   const el=document.getElementById('ai-summary');
+  const newSubs=subs.filter(p=>p.billingReason==='subscription_create');
+  const renewals=subs.filter(p=>p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update');
+  const annualSubs=subs.filter(p=>p.interval==='year');
+  const monthlySubs=subs.filter(p=>p.interval==='month');
   const courseBreakdown={};
   COURSE_RULES.forEach(r=>{const items=courses.filter(p=>p.category===r.key);if(items.length)courseBreakdown[r.label]={count:items.length,rev:Math.round(items.reduce((s,p)=>s+p.amount,0))};});
-  const invoiceMatched=paid.filter(p=>p.confidence==='invoice').length;
-  const stats={period:`${from} to ${to}`,paid:paid.length,net:Math.round(net),subscriptions:subs.length,subRevenue:Math.round(subs.reduce((s,p)=>s+p.amount,0)),courses:courses.length,courseRevenue:Math.round(courses.reduce((s,p)=>s+p.amount,0)),failed:failed.length,refunds:refunds.length,invoiceMatched,courseBreakdown};
+  const stats={period:`${from} to ${to}`,paid:paid.length,net:Math.round(net),newMemberships:newSubs.length,renewals:renewals.length,annualMemberships:annualSubs.length,monthlyMemberships:monthlySubs.length,courses:courses.length,courseRevenue:Math.round(courses.reduce((s,p)=>s+p.amount,0)),failed:failed.length,refunds:refunds.length,courseBreakdown};
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:350,messages:[{role:'user',content:`Write a 4-sentence plain-English summary for a membership and course business owner. Include the date range, subscription vs course split, and the top-performing course. Be warm and specific with numbers. No bullet points. Data: ${JSON.stringify(stats)}`}]})});
-    const d=await r.json();
-    el.textContent=d.content.map(i=>i.text||'').join('');
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:`Write a 4-sentence plain-English summary for a membership and course business owner. Include: the date range, new memberships vs renewals, annual vs monthly split, and top-performing course. Be warm and specific with numbers. No bullet points. Data: ${JSON.stringify(stats)}`}]})});
+    const d=await r.json(); el.textContent=d.content.map(i=>i.text||'').join('');
   }catch(e){
-    el.textContent=`${paid.length.toLocaleString()} successful payments totaling ${fmt(net)} net revenue between ${from} and ${to}. Subscriptions: ${subs.length.toLocaleString()} payments. Course sales: ${courses.length.toLocaleString()} across all programs. ${failed.length.toLocaleString()} failed attempts and ${refunds.length} refunds recorded.`;
+    el.textContent=`${paid.length.toLocaleString()} successful payments totaling ${fmt(net)} net revenue between ${from} and ${to}. ${newSubs.length} new memberships and ${renewals.length} renewals (${annualSubs.length} annual, ${monthlySubs.length} monthly). Course sales: ${courses.length} across all programs. ${failed.length} failed attempts recorded.`;
   }
 }
 
@@ -777,10 +895,15 @@ async function submitAsk(){
   const out=document.getElementById('ask-out');
   out.innerHTML='<div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#888"><div class="spinner" style="width:20px;height:20px;border-width:2px"></div>Analyzing...</div>';
   const from=document.getElementById('date-from').value,to=document.getElementById('date-to').value;
-  const summary=payments.slice(0,80).map(p=>`${p.itemName||p.description||'unnamed'}|${CATEGORY_META[p.category]?.label||p.category}|$${p.amount}|${p.status}|${p.confidence}|${p.date.toLocaleDateString()}`).join('\n');
-  const totals={total:payments.length,paid:payments.filter(p=>p.status==='succeeded').length,failed:payments.filter(p=>p.status==='failed').length,refunded:payments.filter(p=>p.status==='refunded').length,invoiceMatched:payments.filter(p=>p.confidence==='invoice').length};
+  const subs=payments.filter(p=>p.category==='subscription'&&p.status==='succeeded');
+  const newS=subs.filter(p=>p.billingReason==='subscription_create').length;
+  const ren=subs.filter(p=>p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update').length;
+  const ann=subs.filter(p=>p.interval==='year').length;
+  const mon=subs.filter(p=>p.interval==='month').length;
+  const summary=payments.slice(0,80).map(p=>`${p.itemName||p.description||'unnamed'}|${CATEGORY_META[p.category]?.label||p.category}|${p.interval||''}|${p.billingReason||''}|$${p.amount}|${p.status}|${p.date.toLocaleDateString()}`).join('\n');
+  const totals={total:payments.length,paid:payments.filter(p=>p.status==='succeeded').length,failed:payments.filter(p=>p.status==='failed').length,refunded:payments.filter(p=>p.status==='refunded').length,newMemberships:newS,renewals:ren,annualMemberships:ann,monthlyMemberships:mon};
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:`Answer this question about Stripe data from ${from} to ${to}: "${q}"\nStats: ${JSON.stringify(totals)}\nSample data (item|category|amount|status|confidence|date):\n${summary}\nBe specific and concise. Plain text only.`}]})});
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:`Answer this question about Stripe data from ${from} to ${to}: "${q}"\nStats: ${JSON.stringify(totals)}\nSample (item|category|interval|billing_reason|amount|status|date):\n${summary}\nBe specific and concise. Plain text only.`}]})});
     const d=await r.json();
     out.innerHTML=`<div class="ai-box">${d.content.map(i=>i.text||'').join('').replace(/\n/g,'<br>')}</div>`;
   }catch(e){out.innerHTML='<div style="color:#991b1b;font-size:13px">Something went wrong. Please try again.</div>';}
