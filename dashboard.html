@@ -97,16 +97,16 @@ select.input{cursor:pointer}
         </div>
       </div>
       <div style="margin-bottom:20px">
-        <label class="label">Transaction limit</label>
+        <label class="label">Maximum transactions (safety cap)</label>
         <select id="pay-limit" class="input">
-          <option value="500">Up to 500</option>
-          <option value="1000">Up to 1,000</option>
-          <option value="2500">Up to 2,500</option>
-          <option value="5000">Up to 5,000</option>
-          <option value="10000">Up to 10,000</option>
-          <option value="25000" selected>All transactions (up to 25,000)</option>
+          <option value="500">Cap at 500</option>
+          <option value="1000">Cap at 1,000</option>
+          <option value="2500">Cap at 2,500</option>
+          <option value="5000">Cap at 5,000</option>
+          <option value="10000">Cap at 10,000</option>
+          <option value="25000" selected>No cap (up to 25,000)</option>
         </select>
-        <div style="font-size:12px;color:#aaa;margin-top:5px">Fetches 100 at a time with live progress.</div>
+        <div style="font-size:12px;color:#aaa;margin-top:5px">All transactions in your selected date range will load. This cap only stops fetching if a date range is unexpectedly large.</div>
       </div>
       <div id="connect-error" style="display:none"></div>
       <button class="btn btn-primary btn-full" onclick="connect()">Load payments →</button>
@@ -160,12 +160,12 @@ select.input{cursor:pointer}
       </div>
       <div style="margin-bottom:12px">
         <select id="pay-limit2" class="input">
-          <option value="500">Up to 500</option>
-          <option value="1000">Up to 1,000</option>
-          <option value="2500">Up to 2,500</option>
-          <option value="5000">Up to 5,000</option>
-          <option value="10000">Up to 10,000</option>
-          <option value="25000" selected>All transactions (up to 25,000)</option>
+          <option value="500">Cap at 500</option>
+          <option value="1000">Cap at 1,000</option>
+          <option value="2500">Cap at 2,500</option>
+          <option value="5000">Cap at 5,000</option>
+          <option value="10000">Cap at 10,000</option>
+          <option value="25000" selected>No cap (up to 25,000)</option>
         </select>
       </div>
       <div style="display:flex;gap:8px">
@@ -494,6 +494,7 @@ async function connect() {
 async function fetchAndRender() {
   const from=document.getElementById('date-from').value, to=document.getElementById('date-to').value;
   const maxRecords=parseInt(document.getElementById('pay-limit').value);
+  const fromUnix=toUnix(from), toUnix2=toEndUnix(to);
   fetchCancelled=false;
   document.getElementById('load-msg').textContent='Fetching transactions from Stripe...';
   document.getElementById('load-detail').textContent=from+' → '+to;
@@ -503,19 +504,30 @@ async function fetchAndRender() {
   const allCharges=[]; let startingAfter=null, hasMore=true, errorMsg=null;
   try {
     while(hasMore&&allCharges.length<maxRecords&&!fetchCancelled) {
-      const params=new URLSearchParams({'created[gte]':toUnix(from),'created[lte]':toEndUnix(to)});
+      // Always send date filters — Stripe enforces them server-side
+      const params=new URLSearchParams({
+        'created[gte]': fromUnix,
+        'created[lte]': toUnix2
+      });
       if(startingAfter) params.append('starting_after',startingAfter);
       const r=await fetch(`${PROXY}/charges?${params}`);
       if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Server error '+r.status);}
       const data=await r.json();
       if(data.error) throw new Error(data.error);
       const batch=data.data||[];
-      allCharges.push(...batch);
+ 
+      // Extra client-side guard: drop anything outside the date range
+      const inRange=batch.filter(c=>c.created>=fromUnix&&c.created<=toUnix2);
+      allCharges.push(...inRange);
+ 
+      // If Stripe returned records but none were in range, we've gone past our window — stop
       hasMore=data.has_more;
+      if(batch.length>0&&inRange.length===0){ hasMore=false; }
       startingAfter=batch.length>0?batch[batch.length-1].id:null;
       if(!startingAfter) hasMore=false;
+ 
       setProgress(allCharges.length,maxRecords);
-      document.getElementById('load-detail').textContent=allCharges.length.toLocaleString()+' transactions loaded...';
+      document.getElementById('load-detail').textContent=allCharges.length.toLocaleString()+' transactions in date range...';
     }
   } catch(e){errorMsg=e.message;}
  
