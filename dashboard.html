@@ -559,19 +559,19 @@ async function fetchAndRender() {
   setProgress(0,0); show('screen-loading');
   document.getElementById('topbar-status').textContent='Loading...';
 
-  // Build date params once — reused on every page request
+  // Send dates as created[gte] / created[lte] — Express on the server parses these
+  // as req.query.created = { gte, lte } and re-encodes them correctly for Stripe
   const fromTs = toUnix(from);
   const toTs   = toEndUnix(to);
 
   const allCharges=[]; let startingAfter=null, hasMore=true, errorMsg=null;
   try {
     while(hasMore&&!fetchCancelled) {
-      // Always include date range on every paginated request
       const params=new URLSearchParams({
         'created[gte]': fromTs,
         'created[lte]': toTs
       });
-      if(startingAfter) params.append('starting_after',startingAfter);
+      if(startingAfter) params.append('starting_after', startingAfter);
 
       const r=await fetch(`${PROXY}/charges?${params}`);
       if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Server error '+r.status);}
@@ -579,35 +579,24 @@ async function fetchAndRender() {
       if(data.error) throw new Error(data.error);
 
       const batch=data.data||[];
-
-      // Stop immediately if Stripe returns an empty batch
       if(batch.length===0) break;
-
-      // Safety check: if the oldest charge in this batch is already before our window, stop
-      const oldestCreated = batch[batch.length-1].created;
-      if(oldestCreated < fromTs) {
-        // Include only charges within range from this batch, then stop
-        allCharges.push(...batch.filter(c=>c.created>=fromTs&&c.created<=toTs));
-        break;
-      }
 
       allCharges.push(...batch);
       hasMore=data.has_more;
       startingAfter=batch.length>0?batch[batch.length-1].id:null;
       if(!startingAfter) hasMore=false;
 
-      // Update progress — show actual count since we don't know total upfront
       document.getElementById('progress').style.width='50%';
       document.getElementById('progress-label').textContent=allCharges.length.toLocaleString()+' loaded';
       document.getElementById('progress-pct').textContent='';
-      document.getElementById('load-detail').textContent=allCharges.length.toLocaleString()+' transactions found so far...';
+      document.getElementById('load-detail').textContent=allCharges.length.toLocaleString()+' transactions found...';
     }
   } catch(e){errorMsg=e.message;}
 
   if(fetchCancelled) return;
   if(errorMsg){show('screen-connect');const errEl=document.getElementById('connect-error');errEl.innerHTML=`<div class="error-box"><strong>Error:</strong> ${errorMsg}</div>`;errEl.style.display='block';document.getElementById('topbar-status').textContent='Error';return;}
 
-  // Final client-side filter pass — ensures no out-of-range charges slip through
+  // Safety net: discard any charges outside the date range (shouldn't be needed now server filters correctly)
   const filteredCharges = allCharges.filter(c => c.created >= fromTs && c.created <= toTs);
 
   document.getElementById('load-msg').textContent='Categorizing payments...';
