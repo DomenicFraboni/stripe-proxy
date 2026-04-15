@@ -752,7 +752,8 @@ function renderSubCharts(subs, from, to) {
 
   const newSubs      = subs.filter(isNew);
   const renewals     = subs.filter(isRenewal);
-  const unknownType  = subs.filter(p=>!isNew(p)&&!isRenewal(p));
+  const trialSubs    = subs.filter(isTrial);
+  const unknownType  = subs.filter(p=>!isNew(p)&&!isRenewal(p)&&!isTrial(p));
   const annualSubs   = subs.filter(isAnnual);
   const monthlySubs  = subs.filter(isMonthly);
   const annualRev    = annualSubs.reduce((s,p)=>s+p.amount,0);
