@@ -114,18 +114,7 @@ select.input{cursor:pointer}
           <input type="date" id="date-to" class="input" style="width:160px"/>
         </div>
       </div>
-      <div style="margin-bottom:20px">
-        <label class="label">Transaction limit</label>
-        <select id="pay-limit" class="input">
-          <option value="500">Up to 500</option>
-          <option value="1000">Up to 1,000</option>
-          <option value="2500">Up to 2,500</option>
-          <option value="5000">Up to 5,000</option>
-          <option value="10000">Up to 10,000</option>
-          <option value="25000" selected>All transactions (up to 25,000)</option>
-        </select>
-        <div style="font-size:12px;color:#aaa;margin-top:5px">Invoice line items and billing intervals are expanded for accurate classification.</div>
-      </div>
+      <div style="margin-bottom:20px;font-size:12px;color:#aaa;line-height:1.6">All transactions within your selected date range will be loaded. Fetches 100 at a time with live progress.</div>
       <div id="connect-error" style="display:none"></div>
       <button class="btn btn-primary btn-full" onclick="connect()">Load payments →</button>
     </div>
@@ -177,16 +166,7 @@ select.input{cursor:pointer}
         <span style="font-size:13px;color:#888">To</span>
         <input type="date" id="date-to2" class="input" style="width:160px"/>
       </div>
-      <div style="margin-bottom:12px">
-        <select id="pay-limit2" class="input">
-          <option value="500">Up to 500</option>
-          <option value="1000">Up to 1,000</option>
-          <option value="2500">Up to 2,500</option>
-          <option value="5000">Up to 5,000</option>
-          <option value="10000">Up to 10,000</option>
-          <option value="25000" selected>All transactions (up to 25,000)</option>
-        </select>
-      </div>
+
       <div style="display:flex;gap:8px">
         <button class="btn btn-primary" onclick="refetch()">Reload →</button>
         <button class="btn" onclick="document.getElementById('date-picker-inline').style.display='none'">Cancel</button>
@@ -536,7 +516,7 @@ document.getElementById('date-to').value = today();
 buildCatFilterButtons();
 
 function showDatePicker() { const dp=document.getElementById('date-picker-inline'); dp.style.display=dp.style.display==='none'?'block':'none'; document.getElementById('date-from2').value=document.getElementById('date-from').value; document.getElementById('date-to2').value=document.getElementById('date-to').value; }
-async function refetch() { document.getElementById('date-from').value=document.getElementById('date-from2').value; document.getElementById('date-to').value=document.getElementById('date-to2').value; document.getElementById('pay-limit').value=document.getElementById('pay-limit2').value; document.getElementById('date-picker-inline').style.display='none'; await fetchAndRender(); }
+async function refetch() { document.getElementById('date-from').value=document.getElementById('date-from2').value; document.getElementById('date-to').value=document.getElementById('date-to2').value; document.getElementById('date-picker-inline').style.display='none'; await fetchAndRender(); }
 
 function setFilter(type, val, el) {
   activeFilters[type] = val;
@@ -562,7 +542,7 @@ async function connect() {
 
 async function fetchAndRender() {
   const from=document.getElementById('date-from').value, to=document.getElementById('date-to').value;
-  const maxRecords=parseInt(document.getElementById('pay-limit').value);
+  const maxRecords = 100000; // no limit — fetch all transactions in date range
   fetchCancelled=false;
   document.getElementById('load-msg').textContent='Fetching transactions from Stripe...';
   document.getElementById('load-detail').textContent=from+' → '+to;
@@ -649,7 +629,7 @@ function renderDashboard(from, to, total, truncated) {
   document.getElementById('topbar-status').textContent=`${ff} – ${tf}`;
 
   const tn=document.getElementById('truncated-notice');
-  if(truncated){tn.textContent='Your date range has more than '+parseInt(document.getElementById('pay-limit').value).toLocaleString()+' transactions. Increase the limit or narrow your range.';tn.style.display='block';}else tn.style.display='none';
+  tn.style.display='none';
 
   const un=document.getElementById('unmatched-notice');
   if(unmatched.length>0){const pct=Math.round(unmatched.length/paid.length*100);un.textContent=`${unmatched.length.toLocaleString()} paid transactions (${pct}%) could not be matched to a specific product. ${invoiceMatched.toLocaleString()} matched from invoice items (highest confidence), ${descMatched.toLocaleString()} from descriptions.`;un.style.display='block';}else un.style.display='none';
