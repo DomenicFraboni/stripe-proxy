@@ -352,15 +352,15 @@ let activeFilters = { status: 'all', category: 'all', membership: 'all' };
 
 // ── Product catalog ──────────────────────────────────────────────────────────
 const COURSE_RULES = [
-  { key:'lifting-for-longevity',   label:'Lifting for Longevity',              color:'#0369a1', keywords:['lifting for longevity','lifting for long'],                         amounts:new Set([65,75,85,95,99]) },
-  { key:'strong-healthy-joints',   label:'Strong Healthy Joints',              color:'#0f766e', keywords:['strong healthy joints','strong, healthy joints'],                   amounts:new Set([49,53.40,59,69,79]) },
+  { key:'lifting-for-longevity',   label:'Lifting for Longevity',              color:'#0369a1', keywords:['lifting for longevity','lifting for long'],                         amounts:new Set([65,70,75,80,85,95,99]) },
+  { key:'strong-healthy-joints',   label:'Strong Healthy Joints',              color:'#0f766e', keywords:['strong healthy joints','strong, healthy joints'],                   amounts:new Set([49,53.40,59,59.40,69,79]) },
   { key:'posture-redefined',       label:'Posture Redefined',                  color:'#7c3aed', keywords:['posture redefined'],                                                amounts:new Set([69,89]) },
   { key:'mobility-foundations',    label:'Mobility Foundations',               color:'#065f46', keywords:['mobility foundation'],                                              amounts:new Set([69,79,85,89,99]) },
-  { key:'pelvic-floor',            label:'Pelvic Floor Foundations',           color:'#9d174d', keywords:['pelvic floor'],                                                     amounts:new Set([45,55,65]) },
+  { key:'pelvic-floor',            label:'Pelvic Floor Foundations',           color:'#9d174d', keywords:['pelvic floor'],                                                     amounts:new Set([45,48.40,55,65]) },
   { key:'barefoot',                label:'Barefoot Mini Course',               color:'#92400e', keywords:['barefoot'],                                                         amounts:new Set([30,39,45,55,65]) },
   { key:'30-days-release',         label:'30 Days of Release & Recovery',      color:'#b45309', keywords:['30 days of release','release and recovery','release & recovery'],   amounts:new Set([59,69,79,89]) },
   { key:'30-days-strength',        label:'30 Days of Strength & Mobility',     color:'#d97706', keywords:['30 days of strength','strength and mobility','strength & mobility'],amounts:new Set([89]) },
-  { key:'move2improve',            label:'Move 2 Improve',                     color:'#166534', keywords:['move 2 improve','move2improve','m2i'],                              amounts:new Set([36,45,49,59,60,79]) },
+  { key:'move2improve',            label:'Move 2 Improve',                     color:'#166534', keywords:['move 2 improve','move2improve','m2i'],                              amounts:new Set([35,36,45,49,59,60,79]) },
   { key:'grateful',                label:'Grateful for My Body',               color:'#4338ca', keywords:['grateful for my body','grateful for my'],                          amounts:new Set([45,60]) },
 ];
 const COURSE_KEYS = COURSE_RULES.map(r => r.key);
@@ -394,10 +394,27 @@ const CATEGORY_META = {
 function matchText(text) {
   if (!text) return null;
   const t = text.toLowerCase();
+
   if (SUB_KEYWORDS.some(k => t.includes(k))) return 'subscription';
+
+  // Full keyword match for each course
   for (const rule of COURSE_RULES) {
     if (rule.keywords.some(k => t.includes(k))) return rule.key;
   }
+
+  // Broad single-word fallbacks — catches abbreviated or truncated product names
+  if (t.includes('lifting') || t.includes('longevity')) return 'lifting-for-longevity';
+  if (t.includes('strong') && t.includes('joint')) return 'strong-healthy-joints';
+  if (t.includes('posture')) return 'posture-redefined';
+  if (t.includes('pelvic')) return 'pelvic-floor';
+  if (t.includes('barefoot')) return 'barefoot';
+  if (t.includes('mobility')) return 'mobility-foundations';
+  if (t.includes('grateful')) return 'grateful';
+  if (t.includes('release') || t.includes('recovery')) return '30-days-release';
+  if (t.includes('strength') && (t.includes('mobility') || t.includes('30'))) return '30-days-strength';
+  if (t.includes('move') && t.includes('improve')) return 'move2improve';
+
+  // Generic course fallback
   if (['course','class','workshop','program','challenge','training','certificate'].some(k => t.includes(k))) return 'other-course';
   return null;
 }
@@ -624,11 +641,34 @@ async function fetchAndRender() {
           if (inv.description) invoiceItems.push(inv.description);
         }
 
+        // For direct checkout (Payment Intent) charges, extract product name from:
+        // 1. payment_intent.description
+        // 2. payment_intent.metadata (product_name, name, item, course, product)
+        // 3. charge metadata
+        const pi = c.payment_intent;
+        if (pi && typeof pi === 'object') {
+          if (pi.description) invoiceItems.push(pi.description);
+          const meta = pi.metadata || {};
+          ['product_name','product','name','item','course','title'].forEach(k => {
+            if (meta[k]) invoiceItems.push(meta[k]);
+          });
+        }
+        // Also check charge-level metadata
+        const cmeta = c.metadata || {};
+        ['product_name','product','name','item','course','title'].forEach(k => {
+          if (cmeta[k]) invoiceItems.push(cmeta[k]);
+        });
+
+        // Build the best description: prefer payment_intent.description over charge description
+        const piDesc = (pi && typeof pi === 'object') ? (pi.description || '') : '';
+        const chargeDesc = c.description || c.statement_descriptor || '';
+        const bestDesc = piDesc || chargeDesc;
+
         const p = {
           id:c.id, amount:c.amount/100,
           currency:(c.currency||'usd').toUpperCase(),
           status:c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
-          description:c.description||c.statement_descriptor||'',
+          description:bestDesc,
           email:c.customer?.email||c.billing_details?.email||c.receipt_email||'',
           date:new Date(c.created*1000),
           hasInvoice:!!(c.invoice),
