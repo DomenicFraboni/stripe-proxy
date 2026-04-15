@@ -423,21 +423,29 @@ function matchText(text) {
 }
 
 function detectInterval(inv) {
-  // Signal 1: billing_reason (most reliable)
-  // Signal 2: price.recurring.interval from invoice lines
-  // Signal 3: amount-based fallback
-  let interval = null; // 'year' | 'month' | null
-  let billingReason = null; // 'subscription_create' | 'subscription_cycle' | null
+  // Signal 1: _subInterval attached by server from a separate subscription fetch (avoids 4-level expand limit)
+  // Signal 2: billing_reason on the invoice
+  // Signal 3: plan.interval on invoice lines (available without deep expand)
+  // Signal 4: amount / text-based fallback (handled in categorizePayment)
+  let interval = null;
+  let billingReason = null;
 
   if (inv && typeof inv === 'object') {
     billingReason = inv.billing_reason || null;
-    const lines = inv.lines;
-    if (lines && lines.data) {
-      for (const line of lines.data) {
-        const recur = line.price?.recurring || line.plan;
-        if (recur && recur.interval) {
-          interval = recur.interval; // 'month' or 'year'
-          break;
+
+    // Primary: interval fetched server-side from the subscription object
+    if (inv._subInterval) {
+      interval = inv._subInterval;
+    }
+
+    // Fallback: plan object on invoice lines (this is shallower than price.recurring and within limits)
+    if (!interval) {
+      const lines = inv.lines;
+      if (lines && lines.data) {
+        for (const line of lines.data) {
+          // line.plan is available without needing price expansion
+          const planInterval = line.plan?.interval;
+          if (planInterval) { interval = planInterval; break; }
         }
       }
     }
