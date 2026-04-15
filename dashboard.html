@@ -403,43 +403,45 @@ function matchText(text) {
 }
 
 function detectInterval(inv) {
-  // Signal 1: _subInterval attached by server from subscription fetch
-  // Signal 2: billing_reason on the invoice
-  // Signal 3: invoice number sequence — 0002 = first paid (new), 0003+ = renewal
-  //           (0001 = free trial, not a paid membership)
-  // Signal 4: plan.interval on invoice lines
+  // Detects billing interval and new/renewal status from invoice data alone.
+  // No separate subscription API call needed.
   let interval = null;
   let billingReason = null;
-  let invoiceSeq = null; // numeric sequence extracted from invoice number e.g. "ABC-0002" -> 2
+  let invoiceSeq = null;
 
-  if (inv && typeof inv === 'object') {
-    billingReason = inv.billing_reason || null;
+  if (!inv || typeof inv !== 'object') return { interval, billingReason, invoiceSeq };
 
-    // Extract sequence number from invoice number field (e.g. "94F02E42-0005" -> 5)
-    const invNumber = inv.number || '';
-    const seqMatch = invNumber.match(/-(\d{4})$/);
-    if (seqMatch) invoiceSeq = parseInt(seqMatch[1], 10);
+  // billing_reason: 'subscription_create' = new, 'subscription_cycle' = renewal
+  billingReason = inv.billing_reason || null;
 
-    // Also try to parse from charge description (e.g. "Invoice ABC-0003")
-    if (!invoiceSeq && inv.description) {
-      const descMatch = inv.description.match(/-(\d{4})$/);
-      if (descMatch) invoiceSeq = parseInt(descMatch[1], 10);
-    }
+  // Invoice sequence number — parse from invoice number field e.g. "94F02E42-0005" -> 5
+  const invNumber = inv.number || '';
+  const seqMatch = invNumber.match(/-0*(\d+)$/);
+  if (seqMatch) invoiceSeq = parseInt(seqMatch[1], 10);
 
-    // Primary: interval from server-side subscription fetch
-    if (inv._subInterval) interval = inv._subInterval;
+  // Also try charge description e.g. "Invoice ABC-0003"
+  if (!invoiceSeq && inv.description) {
+    const descMatch = inv.description.match(/-0*(\d+)$/);
+    if (descMatch) invoiceSeq = parseInt(descMatch[1], 10);
+  }
 
-    // Fallback: plan.interval on invoice lines
-    if (!interval) {
-      const lines = inv.lines;
-      if (lines && lines.data) {
-        for (const line of lines.data) {
-          const planInterval = line.plan?.interval;
-          if (planInterval) { interval = planInterval; break; }
-        }
-      }
+  // Get billing interval from invoice line plan/price — available within 4-level expand limit
+  const lines = inv.lines;
+  if (lines && lines.data) {
+    for (const line of lines.data) {
+      // plan.interval is populated for subscription line items
+      const planInterval = line.plan?.interval || line.price?.recurring?.interval;
+      if (planInterval) { interval = planInterval; break; }
     }
   }
+
+  // Text-based fallback from invoice description
+  if (!interval) {
+    const text = (inv.description || invNumber || '').toLowerCase();
+    if (text.includes('annual') || text.includes('yearly') || text.includes('per year')) interval = 'year';
+    else if (text.includes('monthly') || text.includes('per month')) interval = 'month';
+  }
+
   return { interval, billingReason, invoiceSeq };
 }
 
@@ -574,7 +576,7 @@ async function fetchAndRender() {
       if(startingAfter) params.append('starting_after', startingAfter);
 
       const ctrl=new AbortController();
-      const timer=setTimeout(()=>ctrl.abort(),20000); // 20s timeout per page
+      const timer=setTimeout(()=>ctrl.abort(),40000); // 40s timeout per page
       let r;
       try{ r=await fetch(`${PROXY}/charges?${params}`,{signal:ctrl.signal}); }
       finally{ clearTimeout(timer); }
