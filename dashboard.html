@@ -495,12 +495,23 @@ function categorizePayment(p) {
     if (cat) { category = cat; confidence = 'description'; itemName = p.description; }
   }
 
-  // 3. Amount fallback
+  // 3. Amount fallback — check both the charged amount and the original pre-discount amount
   if (!category) {
-    if (SUB_AMOUNTS.has(p.amount) && p.hasInvoice) { category = 'subscription'; confidence = 'description'; }
-    else if (!SUB_AMOUNTS.has(p.amount)) {
-      for (const rule of COURSE_RULES) {
-        if (rule.amounts.has(p.amount)) { category = rule.key; confidence = 'description'; break; }
+    const amountsToCheck = new Set([p.amount]);
+    // If a discount was applied, also try the pre-discount (original) amount
+    if (p.discountAmount) amountsToCheck.add(Math.round((p.amount + p.discountAmount) * 100) / 100);
+
+    for (const amt of amountsToCheck) {
+      if (SUB_AMOUNTS.has(amt) && p.hasInvoice) { category = 'subscription'; confidence = 'description'; break; }
+    }
+    if (!category) {
+      for (const amt of amountsToCheck) {
+        if (!SUB_AMOUNTS.has(amt)) {
+          for (const rule of COURSE_RULES) {
+            if (rule.amounts.has(amt)) { category = rule.key; confidence = 'description'; break; }
+          }
+          if (category) break;
+        }
       }
     }
   }
@@ -695,6 +706,7 @@ async function fetchAndRender() {
           discountCode: c._discountCode || null,
           discountAmount: c._discountAmount || null,
           category:'other', confidence:'unmatched', itemName:'', interval:null, billingReason:null, invoiceSeq:null,
+          // discountAmount available early so amount fallback can try pre-discount price
         };
         const result = categorizePayment(p);
         Object.assign(p, result);
