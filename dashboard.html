@@ -403,34 +403,44 @@ function matchText(text) {
 }
 
 function detectInterval(inv) {
-  // Signal 1: _subInterval attached by server from a separate subscription fetch (avoids 4-level expand limit)
+  // Signal 1: _subInterval attached by server from subscription fetch
   // Signal 2: billing_reason on the invoice
-  // Signal 3: plan.interval on invoice lines (available without deep expand)
-  // Signal 4: amount / text-based fallback (handled in categorizePayment)
+  // Signal 3: invoice number sequence — 0002 = first paid (new), 0003+ = renewal
+  //           (0001 = free trial, not a paid membership)
+  // Signal 4: plan.interval on invoice lines
   let interval = null;
   let billingReason = null;
+  let invoiceSeq = null; // numeric sequence extracted from invoice number e.g. "ABC-0002" -> 2
 
   if (inv && typeof inv === 'object') {
     billingReason = inv.billing_reason || null;
 
-    // Primary: interval fetched server-side from the subscription object
-    if (inv._subInterval) {
-      interval = inv._subInterval;
+    // Extract sequence number from invoice number field (e.g. "94F02E42-0005" -> 5)
+    const invNumber = inv.number || '';
+    const seqMatch = invNumber.match(/-(\d{4})$/);
+    if (seqMatch) invoiceSeq = parseInt(seqMatch[1], 10);
+
+    // Also try to parse from charge description (e.g. "Invoice ABC-0003")
+    if (!invoiceSeq && inv.description) {
+      const descMatch = inv.description.match(/-(\d{4})$/);
+      if (descMatch) invoiceSeq = parseInt(descMatch[1], 10);
     }
 
-    // Fallback: plan object on invoice lines (this is shallower than price.recurring and within limits)
+    // Primary: interval from server-side subscription fetch
+    if (inv._subInterval) interval = inv._subInterval;
+
+    // Fallback: plan.interval on invoice lines
     if (!interval) {
       const lines = inv.lines;
       if (lines && lines.data) {
         for (const line of lines.data) {
-          // line.plan is available without needing price expansion
           const planInterval = line.plan?.interval;
           if (planInterval) { interval = planInterval; break; }
         }
       }
     }
   }
-  return { interval, billingReason };
+  return { interval, billingReason, invoiceSeq };
 }
 
 function categorizePayment(p) {
@@ -439,7 +449,7 @@ function categorizePayment(p) {
 
   let category = null, confidence = 'unmatched', itemName = '';
   const inv = p._rawInvoice;
-  const { interval: detectedInterval, billingReason } = detectInterval(inv);
+  const { interval: detectedInterval, billingReason, invoiceSeq } = detectInterval(inv);
 
   // 1. Invoice line items
   if (p.invoiceItems.length > 0) {
@@ -481,7 +491,7 @@ function categorizePayment(p) {
     }
   }
 
-  return { category, confidence, itemName, interval: finalInterval, billingReason };
+  return { category, confidence, itemName, interval: finalInterval, billingReason, invoiceSeq };
 }
 
 // ── UI helpers ───────────────────────────────────────────────────────────────
@@ -598,7 +608,7 @@ async function fetchAndRender() {
       hasInvoice:!!(c.invoice),
       invoiceItems,
       _rawInvoice: (inv && typeof inv==='object') ? inv : null,
-      category:'other', confidence:'unmatched', itemName:'', interval:null, billingReason:null,
+      category:'other', confidence:'unmatched', itemName:'', interval:null, billingReason:null, invoiceSeq:null,
     };
     const result = categorizePayment(p);
     Object.assign(p, result);
@@ -685,8 +695,13 @@ function renderCourseCharts(courses) {
 }
 
 function renderSubCharts(subs, from, to) {
-  const isNew     = p => p.billingReason==='subscription_create';
-  const isRenewal = p => p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update';
+  // New = invoice sequence 0002 (first paid, after 0001 free trial)
+  // Renewal = invoice sequence 0003 and above
+  // Trial = invoice sequence 0001 (free trial — excluded from paid new count)
+  // Fallback to billing_reason when invoice sequence is unavailable
+  const isNew     = p => p.invoiceSeq===2 || (!p.invoiceSeq && p.billingReason==='subscription_create');
+  const isRenewal = p => (p.invoiceSeq!=null && p.invoiceSeq>=3) || (!p.invoiceSeq && (p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update'));
+  const isTrial   = p => p.invoiceSeq===1;
   const isAnnual  = p => p.interval==='year';
   const isMonthly = p => p.interval==='month';
 
@@ -702,9 +717,9 @@ function renderSubCharts(subs, from, to) {
 
   // Stat boxes
   document.getElementById('sub-stat-boxes').innerHTML=`
-    <div class="stat-box"><div class="stat-box-label">New memberships</div><div class="stat-box-value">${newSubs.length.toLocaleString()}</div><div class="stat-box-sub">${fmt(newRev)}</div></div>
-    <div class="stat-box"><div class="stat-box-label">Renewals</div><div class="stat-box-value">${renewals.length.toLocaleString()}</div><div class="stat-box-sub">${fmt(renewalRev)}</div></div>
-    <div class="stat-box"><div class="stat-box-label">Unknown type</div><div class="stat-box-value">${unknownType.length.toLocaleString()}</div><div class="stat-box-sub">no billing_reason</div></div>
+    <div class="stat-box"><div class="stat-box-label">New memberships</div><div class="stat-box-value">${newSubs.length.toLocaleString()}</div><div class="stat-box-sub">${fmt(newRev)} · invoice 0002</div></div>
+    <div class="stat-box"><div class="stat-box-label">Renewals</div><div class="stat-box-value">${renewals.length.toLocaleString()}</div><div class="stat-box-sub">${fmt(renewalRev)} · invoice 0003+</div></div>
+    <div class="stat-box"><div class="stat-box-label">Free trials</div><div class="stat-box-value">${trialSubs.length.toLocaleString()}</div><div class="stat-box-sub">invoice 0001 · $0</div></div>
     <div class="stat-box"><div class="stat-box-label">Annual memberships</div><div class="stat-box-value">${annualSubs.length.toLocaleString()}</div><div class="stat-box-sub">${fmt(annualRev)}</div></div>
     <div class="stat-box"><div class="stat-box-label">Monthly memberships</div><div class="stat-box-value">${monthlySubs.length.toLocaleString()}</div><div class="stat-box-sub">${fmt(monthlyRev)}</div></div>
     <div class="stat-box"><div class="stat-box-label">Avg annual value</div><div class="stat-box-value">${annualSubs.length>0?fmt(annualRev/annualSubs.length):'—'}</div><div class="stat-box-sub">per payment</div></div>`;
@@ -772,8 +787,8 @@ function passesFilter(p) {
   if (status!=='all' && p.status!==status) return false;
   if (category!=='all' && p.category!==category) return false;
   if (p.category==='subscription' && membership!=='all') {
-    const isNew     = p.billingReason==='subscription_create';
-    const isRenewal = p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update';
+    const isNew     = p.invoiceSeq===2 || (!p.invoiceSeq && p.billingReason==='subscription_create');
+    const isRenewal = (p.invoiceSeq!=null && p.invoiceSeq>=3) || (!p.invoiceSeq && (p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update'));
     const isAnnual  = p.interval==='year';
     const isMonthly = p.interval==='month';
     if (membership==='annual-new'     && !(isAnnual && isNew))     return false;
@@ -814,8 +829,12 @@ function renderTxPage() {
     if(p.category==='subscription'){
       if(p.interval==='year') memBadges+=`<span class="badge badge-annual">ANNUAL</span>`;
       else if(p.interval==='month') memBadges+=`<span class="badge badge-monthly">MONTHLY</span>`;
-      if(p.billingReason==='subscription_create') memBadges+=`<span class="badge badge-new">NEW</span>`;
-      else if(p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update') memBadges+=`<span class="badge badge-renewal">RENEWAL</span>`;
+      const _isNew = p.invoiceSeq===2 || (!p.invoiceSeq && p.billingReason==='subscription_create');
+      const _isRen = (p.invoiceSeq!=null&&p.invoiceSeq>=3)||(!p.invoiceSeq&&(p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update'));
+      const _isTrial = p.invoiceSeq===1;
+      if(_isTrial) memBadges+=`<span class="badge" style="background:#f1f5f9;color:#64748b">TRIAL</span>`;
+      else if(_isNew) memBadges+=`<span class="badge badge-new">NEW</span>`;
+      else if(_isRen) memBadges+=`<span class="badge badge-renewal">RENEWAL</span>`;
     }
     return `<div class="tx-row">
       <span class="confidence-dot" style="background:${confColor(p.confidence)}" title="${confTitle(p.confidence)}"></span>
@@ -849,7 +868,7 @@ function downloadCSV() {
     `"${(p.email||'').replace(/"/g,'""')}"`,
     `"${CATEGORY_META[p.category]?.label||p.category}"`,
     p.category==='subscription'?(p.interval==='year'?'Annual':p.interval==='month'?'Monthly':'Unknown'):'',
-    p.category==='subscription'?(p.billingReason==='subscription_create'?'New':p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update'?'Renewal':'Unknown'):'',
+    p.category==='subscription'?(p.invoiceSeq===1?'Trial':p.invoiceSeq===2?'New':(p.invoiceSeq!=null&&p.invoiceSeq>=3)?'Renewal':p.billingReason==='subscription_create'?'New':p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update'?'Renewal':'Unknown'):'',
     p.confidence, p.status, p.amount.toFixed(2), p.currency, p.id
   ]);
   const csv=[headers.join(','),...rows.map(r=>r.join(','))].join('\n');
@@ -862,8 +881,8 @@ function downloadCSV() {
 // ── AI ────────────────────────────────────────────────────────────────────────
 async function generateSummary(paid,subs,courses,failed,refunds,net,from,to) {
   const el=document.getElementById('ai-summary');
-  const newSubs=subs.filter(p=>p.billingReason==='subscription_create');
-  const renewals=subs.filter(p=>p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update');
+  const newSubs=subs.filter(p=>p.invoiceSeq===2||(!p.invoiceSeq&&p.billingReason==='subscription_create'));
+  const renewals=subs.filter(p=>(p.invoiceSeq!=null&&p.invoiceSeq>=3)||(!p.invoiceSeq&&(p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update')));
   const annualSubs=subs.filter(p=>p.interval==='year');
   const monthlySubs=subs.filter(p=>p.interval==='month');
   const courseBreakdown={};
@@ -884,8 +903,8 @@ async function submitAsk(){
   out.innerHTML='<div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#888"><div class="spinner" style="width:20px;height:20px;border-width:2px"></div>Analyzing...</div>';
   const from=document.getElementById('date-from').value,to=document.getElementById('date-to').value;
   const subs=payments.filter(p=>p.category==='subscription'&&p.status==='succeeded');
-  const newS=subs.filter(p=>p.billingReason==='subscription_create').length;
-  const ren=subs.filter(p=>p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update').length;
+  const newS=subs.filter(p=>p.invoiceSeq===2||(!p.invoiceSeq&&p.billingReason==='subscription_create')).length;
+  const ren=subs.filter(p=>(p.invoiceSeq!=null&&p.invoiceSeq>=3)||(!p.invoiceSeq&&(p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update'))).length;
   const ann=subs.filter(p=>p.interval==='year').length;
   const mon=subs.filter(p=>p.interval==='month').length;
   const summary=payments.slice(0,80).map(p=>`${p.itemName||p.description||'unnamed'}|${CATEGORY_META[p.category]?.label||p.category}|${p.interval||''}|${p.billingReason||''}|$${p.amount}|${p.status}|${p.date.toLocaleDateString()}`).join('\n');
