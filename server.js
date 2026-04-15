@@ -10,7 +10,7 @@ app.options("*", cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.json({ status: "Stripe proxy is running", version: "12.0" });
+  res.json({ status: "Stripe proxy is running", version: "13.0" });
 });
 
 app.get("/dashboard", (req, res) => {
@@ -27,10 +27,10 @@ app.get("/charges", async (req, res) => {
   if (created && created.lte) params.append("created[lte]", created.lte);
   if (req.query.starting_after) params.append("starting_after", req.query.starting_after);
 
-  // Expand invoice + lines for subscription charges
-  // Also expand payment_intent so we get its description for direct checkout purchases
+  // Expand invoice, invoice lines, payment_intent, and payment_intent discounts
   params.append("expand[]", "data.invoice");
   params.append("expand[]", "data.invoice.lines");
+  params.append("expand[]", "data.invoice.discount");
   params.append("expand[]", "data.payment_intent");
 
   try {
@@ -39,12 +39,78 @@ app.get("/charges", async (req, res) => {
     });
     const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
+
+    // Extract discount code from multiple possible locations and attach as _discountCode
+    for (const charge of data.data || []) {
+      charge._discountCode = extractDiscountCode(charge);
+      charge._discountAmount = extractDiscountAmount(charge);
+    }
+
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: "Failed to reach Stripe: " + err.message });
   }
 });
 
+function extractDiscountCode(charge) {
+  // 1. Invoice discount (subscription payments)
+  const inv = charge.invoice;
+  if (inv && typeof inv === "object") {
+    const disc = inv.discount;
+    if (disc) {
+      const code = disc.coupon?.id || disc.coupon?.name || disc.promotion_code?.code || null;
+      if (code) return code;
+    }
+    // Also check total_discount_amounts on invoice
+    if (inv.total_discount_amounts && inv.total_discount_amounts.length > 0) {
+      const d = inv.total_discount_amounts[0];
+      if (d.discount && typeof d.discount === "object") {
+        return d.discount.coupon?.id || d.discount.coupon?.name || null;
+      }
+    }
+  }
+
+  // 2. Payment Intent metadata (many Stripe checkout integrations store coupon here)
+  const pi = charge.payment_intent;
+  if (pi && typeof pi === "object") {
+    const meta = pi.metadata || {};
+    const code = meta.coupon || meta.discount_code || meta.promo_code || meta.coupon_code || meta.discount || null;
+    if (code) return code;
+
+    // 3. Payment Intent discounts array (Stripe Checkout sessions)
+    if (pi.discounts && pi.discounts.length > 0) {
+      const d = pi.discounts[0];
+      return d.coupon?.id || d.coupon?.name || d.promotion_code?.code || null;
+    }
+  }
+
+  // 4. Charge metadata
+  const cmeta = charge.metadata || {};
+  return cmeta.coupon || cmeta.discount_code || cmeta.promo_code || cmeta.coupon_code || null;
+}
+
+function extractDiscountAmount(charge) {
+  // Invoice discount amount
+  const inv = charge.invoice;
+  if (inv && typeof inv === "object") {
+    if (inv.total_discount_amounts && inv.total_discount_amounts.length > 0) {
+      const total = inv.total_discount_amounts.reduce((s, d) => s + (d.amount || 0), 0);
+      if (total > 0) return total / 100;
+    }
+  }
+
+  // Payment intent: infer from amount_subtotal vs amount_total if available
+  const pi = charge.payment_intent;
+  if (pi && typeof pi === "object") {
+    if (pi.amount_subtotal != null && pi.amount != null) {
+      const diff = pi.amount_subtotal - pi.amount;
+      if (diff > 0) return diff / 100;
+    }
+  }
+
+  return null;
+}
+
 app.listen(PORT, () => {
-  console.log(`Stripe proxy v12.0 running on port ${PORT}`);
+  console.log(`Stripe proxy v13.0 running on port ${PORT}`);
 });
