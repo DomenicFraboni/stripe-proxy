@@ -241,6 +241,16 @@ select.input{cursor:pointer}
           <button class="filter-btn" id="mf-renewal" onclick="setFilter('membership','renewal-only',this)">Renewals only</button>
         </div>
       </div>
+      <div class="filter-section" id="discount-filter-row">
+        <div class="filter-section-label">Discount codes</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px" id="discount-filter-buttons">
+          <button class="filter-btn on" id="df-all" onclick="setDiscountFilter('all',this)">All transactions</button>
+          <button class="filter-btn" id="df-discounted" onclick="setDiscountFilter('discounted',this)">Has discount code</button>
+          <button class="filter-btn" id="df-no-discount" onclick="setDiscountFilter('no-discount',this)">No discount code</button>
+        </div>
+        <div id="discount-code-buttons" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+      </div>
+
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
         <input id="filter-q" oninput="renderTx()" placeholder="Search email, description, or item name..." class="input" style="flex:1;min-width:200px"/>
         <div id="tx-count" style="font-size:13px;color:#888;white-space:nowrap"></div>
@@ -349,6 +359,7 @@ let payments = [], txPage = 0, currentFiltered = [];
 let catChart, timeChart, courseChart, courseUnitsChart, subNewRenChart, subIntervalChart;
 let fetchCancelled = false;
 let activeFilters = { status: 'all', category: 'all', membership: 'all' };
+let activeDiscountFilter = 'all'; // 'all' | 'discounted' | 'no-discount' | specific code
 
 // ── Product catalog ──────────────────────────────────────────────────────────
 const COURSE_RULES = [
@@ -548,6 +559,13 @@ buildCatFilterButtons();
 function showDatePicker() { const dp=document.getElementById('date-picker-inline'); dp.style.display=dp.style.display==='none'?'block':'none'; document.getElementById('date-from2').value=document.getElementById('date-from').value; document.getElementById('date-to2').value=document.getElementById('date-to').value; }
 async function refetch() { document.getElementById('date-from').value=document.getElementById('date-from2').value; document.getElementById('date-to').value=document.getElementById('date-to2').value; document.getElementById('date-picker-inline').style.display='none'; await fetchAndRender(); }
 
+function setDiscountFilter(val, el) {
+  activeDiscountFilter = val;
+  document.querySelectorAll('[id^="df-"]').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  renderTx();
+}
+
 function setFilter(type, val, el) {
   activeFilters[type] = val;
   const prefix = type==='status'?'sf-':type==='category'?'cf-':'mf-';
@@ -674,6 +692,8 @@ async function fetchAndRender() {
           hasInvoice:!!(c.invoice),
           invoiceItems,
           _rawInvoice: (inv && typeof inv==='object') ? inv : null,
+          discountCode: c._discountCode || null,
+          discountAmount: c._discountAmount || null,
           category:'other', confidence:'unmatched', itemName:'', interval:null, billingReason:null, invoiceSeq:null,
         };
         const result = categorizePayment(p);
@@ -740,7 +760,9 @@ function renderDashboard(from, to, total, truncated) {
   renderTimeChart(paid,from,to);
   renderCourseCharts(courses);
   renderSubCharts(subs,from,to);
-  txPage=0; renderTx();
+  txPage=0;
+  populateDiscountButtons();
+  renderTx();
   generateSummary(paid,subs,courses,failed,refunds,netRev,from,to);
 }
 
@@ -886,9 +908,32 @@ function passesFilter(p) {
     if (membership==='new-only'       && !isNew)                   return false;
     if (membership==='renewal-only'   && !isRenewal)               return false;
   }
+  // Discount filter
+  if (activeDiscountFilter === 'discounted' && !p.discountCode) return false;
+  if (activeDiscountFilter === 'no-discount' && p.discountCode) return false;
+  if (activeDiscountFilter !== 'all' && activeDiscountFilter !== 'discounted' && activeDiscountFilter !== 'no-discount') {
+    if (p.discountCode !== activeDiscountFilter) return false;
+  }
+
   const q=(document.getElementById('filter-q').value||'').toLowerCase();
-  if (q && !(p.description+p.email+(p.itemName||'')).toLowerCase().includes(q)) return false;
+  if (q && !(p.description+p.email+(p.itemName||'')+(p.discountCode||'')).toLowerCase().includes(q)) return false;
   return true;
+}
+
+function populateDiscountButtons() {
+  // Build a list of all unique discount codes used in this period
+  const codes = [...new Set(payments.filter(p => p.discountCode).map(p => p.discountCode))].sort();
+  const container = document.getElementById('discount-code-buttons');
+  if (!container) return;
+  if (codes.length === 0) {
+    container.innerHTML = '<span style="font-size:12px;color:#aaa">No discount codes found in this date range.</span>';
+    return;
+  }
+  container.innerHTML = codes.map(code => {
+    const count = payments.filter(p => p.discountCode === code).length;
+    const rev = payments.filter(p => p.discountCode === code && p.status === 'succeeded').reduce((s,p) => s+p.amount, 0);
+    return `<button class="filter-btn" id="df-${code}" onclick="setDiscountFilter('${code}',this)">${code} <span style="font-size:11px;color:#888">(${count} · ${fmt(rev)})</span></button>`;
+  }).join('');
 }
 
 function renderTx() {
@@ -930,6 +975,7 @@ function renderTxPage() {
         <div style="font-size:12px;color:#888">${p.email||p.id}</div>
       </div>
       <span class="tag" style="background:${meta.color}22;color:${meta.color}">${meta.label}</span>
+      ${p.discountCode?`<span class="tag" style="background:#fef9c3;color:#713f12;font-size:10px">${p.discountCode}${p.discountAmount?' -'+fmt(p.discountAmount):''}</span>`:''}
       <span style="font-size:11px;font-weight:600;color:${sColor(p.status)};white-space:nowrap">${sLabel(p.status)}</span>
       <div style="min-width:80px;text-align:right;font-weight:600;color:${p.status==='refunded'?'#991b1b':p.status==='failed'?'#92400e':'#1a1a1a'}">${fmt(p.amount)}</div>
       <div style="min-width:95px;text-align:right;font-size:12px;color:#888">${p.date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
@@ -946,7 +992,7 @@ function showMoreTx(){txPage++;renderTxPage();}
 function downloadCSV() {
   const filtered=payments.filter(passesFilter);
   if(!filtered.length){alert('No transactions to download with current filters.');return;}
-  const headers=['Date','Description','Invoice Item','Email','Category','Membership Type','New or Renewal','Match Source','Status','Amount','Currency','Transaction ID'];
+  const headers=['Date','Description','Invoice Item','Email','Category','Membership Type','New or Renewal','Discount Code','Discount Amount','Match Source','Status','Amount','Currency','Transaction ID'];
   const rows=filtered.map(p=>[
     p.date.toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'}),
     `"${(p.description||'').replace(/"/g,'""')}"`,
@@ -955,7 +1001,7 @@ function downloadCSV() {
     `"${CATEGORY_META[p.category]?.label||p.category}"`,
     p.category==='subscription'?(p.interval==='year'?'Annual':p.interval==='month'?'Monthly':'Unknown'):'',
     p.category==='subscription'?(p.invoiceSeq===1?'Trial':p.invoiceSeq===2?'New':(p.invoiceSeq!=null&&p.invoiceSeq>=3)?'Renewal':p.billingReason==='subscription_create'?'New':p.billingReason==='subscription_cycle'||p.billingReason==='subscription_update'?'Renewal':'Unknown'):'',
-    p.confidence, p.status, p.amount.toFixed(2), p.currency, p.id
+    p.discountCode||'', p.discountAmount!=null?p.discountAmount.toFixed(2):'', p.confidence, p.status, p.amount.toFixed(2), p.currency, p.id
   ]);
   const csv=[headers.join(','),...rows.map(r=>r.join(','))].join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
