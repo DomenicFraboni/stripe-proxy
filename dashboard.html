@@ -573,7 +573,11 @@ async function fetchAndRender() {
       });
       if(startingAfter) params.append('starting_after', startingAfter);
 
-      const r=await fetch(`${PROXY}/charges?${params}`);
+      const ctrl=new AbortController();
+      const timer=setTimeout(()=>ctrl.abort(),20000); // 20s timeout per page
+      let r;
+      try{ r=await fetch(`${PROXY}/charges?${params}`,{signal:ctrl.signal}); }
+      finally{ clearTimeout(timer); }
       if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Server error '+r.status);}
       const data=await r.json();
       if(data.error) throw new Error(data.error);
