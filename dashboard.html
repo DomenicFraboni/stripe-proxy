@@ -510,8 +510,9 @@ function buildCatFilterButtons() {
 
 function today() { return new Date().toISOString().split('T')[0]; }
 function daysAgo(n) { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split('T')[0]; }
-function toUnix(s) { return Math.floor(new Date(s+'T00:00:00').getTime()/1000); }
-function toEndUnix(s) { return Math.floor(new Date(s+'T23:59:59').getTime()/1000); }
+// Use UTC so date filters are timezone-independent — avoids missing charges near midnight
+function toUnix(s) { return Math.floor(new Date(s+'T00:00:00Z').getTime()/1000); }
+function toEndUnix(s) { return Math.floor(new Date(s+'T23:59:59Z').getTime()/1000); }
 function fmt(n) { return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function show(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); document.getElementById(id).classList.add('on'); }
 function switchTab(el,id) { document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on')); document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on')); el.classList.add('on'); document.getElementById(id).classList.add('on'); }
@@ -581,9 +582,16 @@ async function fetchAndRender() {
   if(fetchCancelled) return;
   if(errorMsg){show('screen-connect');const errEl=document.getElementById('connect-error');errEl.innerHTML=`<div class="error-box"><strong>Error:</strong> ${errorMsg}</div>`;errEl.style.display='block';document.getElementById('topbar-status').textContent='Error';return;}
 
+  // Hard client-side filter: discard any charges outside the selected date range.
+  // This catches edge cases where Stripe returns charges just outside the window
+  // due to pagination cursor placement.
+  const fromTs = toUnix(from);
+  const toTs   = toEndUnix(to);
+  const filteredCharges = allCharges.filter(c => c.created >= fromTs && c.created <= toTs);
+
   document.getElementById('load-msg').textContent='Categorizing payments...';
 
-  payments = allCharges.map(c => {
+  payments = filteredCharges.map(c => {
     const invoiceItems = [];
     const inv = c.invoice;
     if (inv && typeof inv === 'object') {
@@ -616,7 +624,7 @@ async function fetchAndRender() {
     return p;
   });
 
-  renderDashboard(from, to, allCharges.length, hasMore&&allCharges.length>=maxRecords);
+  renderDashboard(from, to, filteredCharges.length, false);
   show('screen-dash');
 }
 
