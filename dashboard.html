@@ -605,40 +605,61 @@ async function fetchAndRender() {
 
   document.getElementById('load-msg').textContent='Categorizing payments...';
 
-  payments = filteredCharges.map(c => {
-    const invoiceItems = [];
-    const inv = c.invoice;
-    if (inv && typeof inv === 'object') {
-      const lines = inv.lines;
-      if (lines && lines.data) {
-        lines.data.forEach(line => {
-          if (line.description) invoiceItems.push(line.description);
-          if (line.price?.nickname) invoiceItems.push(line.price.nickname);
-          if (line.plan?.nickname) invoiceItems.push(line.plan.nickname);
-        });
+  try {
+    payments = filteredCharges.map(c => {
+      try {
+        const invoiceItems = [];
+        const inv = c.invoice;
+        if (inv && typeof inv === 'object') {
+          const lines = inv.lines;
+          if (lines && lines.data) {
+            lines.data.forEach(line => {
+              if (line.description) invoiceItems.push(line.description);
+              if (line.price?.nickname) invoiceItems.push(line.price.nickname);
+              if (line.plan?.nickname) invoiceItems.push(line.plan.nickname);
+            });
+          }
+          if (inv.description) invoiceItems.push(inv.description);
+        }
+
+        const p = {
+          id:c.id, amount:c.amount/100,
+          currency:(c.currency||'usd').toUpperCase(),
+          status:c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
+          description:c.description||c.statement_descriptor||'',
+          email:c.customer?.email||c.billing_details?.email||c.receipt_email||'',
+          date:new Date(c.created*1000),
+          hasInvoice:!!(c.invoice),
+          invoiceItems,
+          _rawInvoice: (inv && typeof inv==='object') ? inv : null,
+          category:'other', confidence:'unmatched', itemName:'', interval:null, billingReason:null, invoiceSeq:null,
+        };
+        const result = categorizePayment(p);
+        Object.assign(p, result);
+        delete p._rawInvoice;
+        return p;
+      } catch(itemErr) {
+        // If one charge fails to parse, return a safe fallback rather than crashing the whole batch
+        return {
+          id:c.id||'unknown', amount:(c.amount||0)/100, currency:'USD',
+          status:c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
+          description:c.description||'', email:'', date:new Date((c.created||0)*1000),
+          hasInvoice:false, invoiceItems:[], category:'other',
+          confidence:'unmatched', itemName:'', interval:null, billingReason:null, invoiceSeq:null,
+        };
       }
-      if (inv.description) invoiceItems.push(inv.description);
-    }
+    });
 
-    const p = {
-      id:c.id, amount:c.amount/100,
-      currency:(c.currency||'usd').toUpperCase(),
-      status:c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
-      description:c.description||c.statement_descriptor||'',
-      email:c.customer?.email||c.billing_details?.email||c.receipt_email||'',
-      date:new Date(c.created*1000),
-      hasInvoice:!!(c.invoice),
-      invoiceItems,
-      _rawInvoice: (inv && typeof inv==='object') ? inv : null,
-      category:'other', confidence:'unmatched', itemName:'', interval:null, billingReason:null, invoiceSeq:null,
-    };
-    const result = categorizePayment(p);
-    Object.assign(p, result);
-    delete p._rawInvoice;
-    return p;
-  });
+    renderDashboard(from, to, filteredCharges.length, false);
+  } catch(renderErr) {
+    // Show the error on the connect screen so user knows what went wrong
+    show('screen-connect');
+    const errEl=document.getElementById('connect-error');
+    errEl.innerHTML=`<div class="error-box"><strong>Error building dashboard:</strong> ${renderErr.message}</div>`;
+    errEl.style.display='block';
+    return;
+  }
 
-  renderDashboard(from, to, filteredCharges.length, false);
   show('screen-dash');
 }
 
