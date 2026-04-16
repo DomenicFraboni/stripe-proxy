@@ -705,6 +705,7 @@ async function fetchAndRender() {
           hasInvoice:!!(c.invoice),
           invoiceItems,
           _rawInvoice: (inv && typeof inv==='object') ? inv : null,
+          _piId: (typeof c.payment_intent === 'string') ? c.payment_intent : null,
           discountCode: c._discountCode || null,
           discountAmount: c._discountAmount || null,
           sessionLineItems: [],
@@ -719,7 +720,7 @@ async function fetchAndRender() {
           id:c.id||'unknown', amount:(c.amount||0)/100, currency:'USD',
           status:c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
           description:c.description||'', email:'', date:new Date((c.created||0)*1000),
-          hasInvoice:false, invoiceItems:[], sessionLineItems:[], category:'other',
+          hasInvoice:false, invoiceItems:[], sessionLineItems:[], _piId:null, category:'other',
           confidence:'unmatched', itemName:'', interval:null, billingReason:null, invoiceSeq:null,
           discountCode:null, discountAmount:null,
         };
@@ -738,6 +739,82 @@ async function fetchAndRender() {
     return;
   }
 
+  // Enrich only the uncategorized charges — these need checkout session lookups
+  // to get the product name. Done in background so dashboard is already usable.
+  enrichUncategorized();
+}
+
+async function enrichUncategorized() {
+  // Collect payment intent IDs only for charges that are still 'other'
+  // and have no invoice (direct checkout purchases with blank description)
+  const uncategorized = payments.filter(p =>
+    p.category === 'other' &&
+    p.status === 'succeeded' &&
+    !p.hasInvoice &&
+    p._piId
+  );
+
+  if (uncategorized.length === 0) return;
+
+  // Update subtitle to show enrichment is happening
+  const subtitleEl = document.getElementById('dash-subtitle');
+  const originalSubtitle = subtitleEl ? subtitleEl.textContent : '';
+  if (subtitleEl) subtitleEl.textContent = originalSubtitle + ' · identifying ' + uncategorized.length + ' more...';
+
+  // Group by payment intent ID (de-duplicate)
+  const piMap = {};
+  uncategorized.forEach(p => {
+    if (!piMap[p._piId]) piMap[p._piId] = [];
+    piMap[p._piId].push(p);
+  });
+
+  const piIds = Object.keys(piMap);
+  const BATCH = 20; // up to 20 at a time — targeted so this is fast
+
+  for (let i = 0; i < piIds.length; i += BATCH) {
+    if (fetchCancelled) break;
+    const batch = piIds.slice(i, i + BATCH);
+    try {
+      const r = await fetch(`${PROXY}/enrich`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ piIds: batch })
+      });
+      if (!r.ok) continue;
+      const enrichData = await r.json();
+
+      let anyUpdated = false;
+      for (const piId of batch) {
+        const info = enrichData[piId];
+        if (!info) continue;
+        const pmts = piMap[piId] || [];
+        for (const p of pmts) {
+          if (info.lineItems && info.lineItems.length > 0) {
+            p.sessionLineItems = info.lineItems;
+          }
+          if (info.discountCode) {
+            p.discountCode = info.discountCode;
+            p.discountAmount = info.discountAmount;
+          }
+          // Re-categorize with the new session line items
+          const prev = p.category;
+          const result = categorizePayment(p);
+          Object.assign(p, result);
+          if (p.category !== prev) anyUpdated = true;
+        }
+      }
+
+      if (anyUpdated) {
+        const from = document.getElementById('date-from').value;
+        const to = document.getElementById('date-to').value;
+        populateDiscountButtons();
+        renderDashboard(from, to, payments.length, false);
+      }
+    } catch(e) { /* skip failed batch silently */ }
+  }
+
+  // Clean up subtitle
+  if (subtitleEl) subtitleEl.textContent = originalSubtitle;
 }
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
