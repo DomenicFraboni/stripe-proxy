@@ -363,16 +363,16 @@ let activeDiscountFilter = 'all'; // 'all' | 'discounted' | 'no-discount' | spec
 
 // ── Product catalog ──────────────────────────────────────────────────────────
 const COURSE_RULES = [
-  { key:'lifting-for-longevity',   label:'Lifting for Longevity',              color:'#0369a1', keywords:['lifting for longevity','lifting for long'],                         amounts:new Set([65,70,75,80,85,95,99]) },
-  { key:'strong-healthy-joints',   label:'Strong Healthy Joints',              color:'#0f766e', keywords:['strong healthy joints','strong, healthy joints'],                   amounts:new Set([49,53.40,59,59.40,69,79]) },
-  { key:'posture-redefined',       label:'Posture Redefined',                  color:'#7c3aed', keywords:['posture redefined'],                                                amounts:new Set([69,89]) },
-  { key:'mobility-foundations',    label:'Mobility Foundations',               color:'#065f46', keywords:['mobility foundation'],                                              amounts:new Set([69,79,85,89,99]) },
-  { key:'pelvic-floor',            label:'Pelvic Floor Foundations',           color:'#9d174d', keywords:['pelvic floor'],                                                     amounts:new Set([45,48.40,55,65]) },
-  { key:'barefoot',                label:'Barefoot Mini Course',               color:'#92400e', keywords:['barefoot'],                                                         amounts:new Set([30,39,45,55,65]) },
-  { key:'30-days-release',         label:'30 Days of Release & Recovery',      color:'#b45309', keywords:['30 days of release','release and recovery','release & recovery'],   amounts:new Set([59,69,79,89]) },
-  { key:'30-days-strength',        label:'30 Days of Strength & Mobility',     color:'#d97706', keywords:['30 days of strength','strength and mobility','strength & mobility'],amounts:new Set([89]) },
-  { key:'move2improve',            label:'Move 2 Improve',                     color:'#166534', keywords:['move 2 improve','move2improve','m2i'],                              amounts:new Set([35,36,45,49,59,60,79]) },
-  { key:'grateful',                label:'Grateful for My Body',               color:'#4338ca', keywords:['grateful for my body','grateful for my'],                          amounts:new Set([45,60]) },
+  { key:'lifting-for-longevity',   label:'Lifting for Longevity',              color:'#0369a1', keywords:['lifting for longevity','lifting for long','lifting for long'] },
+  { key:'strong-healthy-joints',   label:'Strong Healthy Joints',              color:'#0f766e', keywords:['strong healthy joints','strong, healthy joints','strong healthy joint'] },
+  { key:'posture-redefined',       label:'Posture Redefined',                  color:'#7c3aed', keywords:['posture redefined'] },
+  { key:'mobility-foundations',    label:'Mobility Foundations',               color:'#065f46', keywords:['mobility foundation'] },
+  { key:'pelvic-floor',            label:'Pelvic Floor Foundations',           color:'#9d174d', keywords:['pelvic floor'] },
+  { key:'barefoot',                label:'Barefoot Mini Course',               color:'#92400e', keywords:['barefoot'] },
+  { key:'30-days-release',         label:'30 Days of Release & Recovery',      color:'#b45309', keywords:['30 days of release','release and recovery','release & recovery'] },
+  { key:'30-days-strength',        label:'30 Days of Strength & Mobility',     color:'#d97706', keywords:['30 days of strength','strength and mobility','strength & mobility'] },
+  { key:'move2improve',            label:'Move 2 Improve',                     color:'#166534', keywords:['move 2 improve','move2improve','m2i'] },
+  { key:'grateful',                label:'Grateful for My Body',               color:'#4338ca', keywords:['grateful for my body','grateful for my'] },
 ];
 const COURSE_KEYS = COURSE_RULES.map(r => r.key);
 
@@ -481,39 +481,35 @@ function categorizePayment(p) {
   const inv = p._rawInvoice;
   const { interval: detectedInterval, billingReason, invoiceSeq } = detectInterval(inv);
 
-  // 1. Invoice line items
-  if (p.invoiceItems.length > 0) {
-    for (const item of p.invoiceItems) {
+  // Priority order — text always wins over amount:
+  // 1. Checkout session line items (most reliable — actual product name from Stripe Checkout)
+  // 2. Invoice line items (subscription invoice descriptions)
+  // 3. Charge/PaymentIntent description text
+  // 4. Subscription amount matching (subscriptions only — course amounts are too ambiguous)
+
+  // 1. Checkout session line items
+  for (const item of (p.sessionLineItems || [])) {
+    const cat = matchText(item);
+    if (cat) { category = cat; confidence = 'invoice'; itemName = item; break; }
+  }
+
+  // 2. Invoice line items
+  if (!category) {
+    for (const item of (p.invoiceItems || [])) {
       const cat = matchText(item);
       if (cat) { category = cat; confidence = 'invoice'; itemName = item; break; }
     }
   }
 
-  // 2. Charge description
+  // 3. Description text (payment intent description, charge description)
   if (!category) {
     const cat = matchText(p.description);
     if (cat) { category = cat; confidence = 'description'; itemName = p.description; }
   }
 
-  // 3. Amount fallback — check both the charged amount and the original pre-discount amount
-  if (!category) {
-    const amountsToCheck = new Set([p.amount]);
-    // If a discount was applied, also try the pre-discount (original) amount
-    if (p.discountAmount) amountsToCheck.add(Math.round((p.amount + p.discountAmount) * 100) / 100);
-
-    for (const amt of amountsToCheck) {
-      if (SUB_AMOUNTS.has(amt) && p.hasInvoice) { category = 'subscription'; confidence = 'description'; break; }
-    }
-    if (!category) {
-      for (const amt of amountsToCheck) {
-        if (!SUB_AMOUNTS.has(amt)) {
-          for (const rule of COURSE_RULES) {
-            if (rule.amounts.has(amt)) { category = rule.key; confidence = 'description'; break; }
-          }
-          if (category) break;
-        }
-      }
-    }
+  // 4. Amount fallback — subscriptions only (course amounts overlap too much to be reliable)
+  if (!category && SUB_AMOUNTS.has(p.amount) && p.hasInvoice) {
+    category = 'subscription'; confidence = 'description';
   }
 
   if (!category) category = 'other';
@@ -705,8 +701,8 @@ async function fetchAndRender() {
           _rawInvoice: (inv && typeof inv==='object') ? inv : null,
           discountCode: c._discountCode || null,
           discountAmount: c._discountAmount || null,
+          sessionLineItems: c._lineItems || [],
           category:'other', confidence:'unmatched', itemName:'', interval:null, billingReason:null, invoiceSeq:null,
-          // discountAmount available early so amount fallback can try pre-discount price
         };
         const result = categorizePayment(p);
         Object.assign(p, result);
