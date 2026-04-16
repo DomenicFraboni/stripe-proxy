@@ -10,13 +10,14 @@ app.options("*", cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.json({ status: "Stripe proxy is running", version: "15.0" });
+  res.json({ status: "Stripe proxy is running", version: "16.0" });
 });
 
 app.get("/dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "dashboard.html"));
 });
 
+// ── Endpoint 1: Fetch a page of charges (fast — no extra lookups) ──────────
 app.get("/charges", async (req, res) => {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) return res.status(500).json({ error: "STRIPE_SECRET_KEY not set in Railway Variables." });
@@ -32,90 +33,72 @@ app.get("/charges", async (req, res) => {
   params.append("expand[]", "data.invoice.discount");
   params.append("expand[]", "data.payment_intent");
 
-  const headers = { Authorization: `Bearer ${stripeKey}` };
-
   try {
-    const response = await fetch(`https://api.stripe.com/v1/charges?${params}`, { headers });
+    const response = await fetch(`https://api.stripe.com/v1/charges?${params}`, {
+      headers: { Authorization: `Bearer ${stripeKey}` },
+    });
     const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
 
-    // Collect payment intent IDs for direct-checkout charges (no invoice)
-    // These need a checkout session lookup to get the actual product name
-    const piIds = new Set();
+    // Attach invoice-based discount info (fast — already in the response)
     for (const charge of data.data || []) {
-      const pi = charge.payment_intent;
-      if (pi && typeof pi === "object" && pi.id && !charge.invoice) {
-        piIds.add(pi.id);
-      }
-    }
-
-    // Fetch checkout session for each payment intent — gives us:
-    // 1. Line item descriptions (actual product name e.g. "Lifting For Longevity")
-    // 2. Human-readable promotion code (e.g. "LIFT")
-    // 3. Discount amount
-    const sessionMap = {};
-    await Promise.all([...piIds].map(async (piId) => {
-      try {
-        const sessRes = await fetch(
-          `https://api.stripe.com/v1/checkout/sessions?payment_intent=${piId}&limit=1&expand[]=data.line_items&expand[]=data.total_details.breakdown`,
-          { headers }
-        );
-        const sessData = await sessRes.json();
-        const session = sessData.data?.[0];
-        if (!session) return;
-
-        // Extract line item names
-        const lineItems = [];
-        for (const item of session.line_items?.data || []) {
-          if (item.description) lineItems.push(item.description);
-        }
-
-        // Extract promotion code
-        let discountCode = null;
-        let discountAmount = null;
-        const discounts = session.total_details?.breakdown?.discounts || [];
-        for (const d of discounts) {
-          const promoCode = d.discount?.promotion_code;
-          if (promoCode && typeof promoCode === "object" && promoCode.code) {
-            discountCode = promoCode.code;
-            discountAmount = (d.amount || 0) / 100;
-            break;
-          }
-          const couponCode = d.discount?.coupon?.name || d.discount?.coupon?.id;
-          if (couponCode) {
-            discountCode = couponCode;
-            discountAmount = (d.amount || 0) / 100;
-            break;
-          }
-        }
-
-        sessionMap[piId] = { lineItems, discountCode, discountAmount };
-      } catch (e) { /* skip — non-critical */ }
-    }));
-
-    // Attach session data to each charge
-    for (const charge of data.data || []) {
-      const piId = charge.payment_intent?.id;
-      const session = piId ? sessionMap[piId] : null;
-
-      // Product name: prefer session line items, then invoice items, then pi description
-      charge._lineItems = session?.lineItems || [];
-
-      // Discount: prefer session (has readable promo code), then invoice
-      if (session?.discountCode) {
-        charge._discountCode = session.discountCode;
-        charge._discountAmount = session.discountAmount;
-      } else {
-        const inv = extractFromInvoiceOrMeta(charge);
-        charge._discountCode = inv?.code || null;
-        charge._discountAmount = inv?.amount || null;
-      }
+      const inv = extractFromInvoiceOrMeta(charge);
+      charge._discountCode = inv?.code || null;
+      charge._discountAmount = inv?.amount || null;
     }
 
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: "Failed to reach Stripe: " + err.message });
   }
+});
+
+// ── Endpoint 2: Enrich a small batch of payment intent IDs ─────────────────
+// Dashboard calls this after all pages are loaded, sending 10 PI IDs at a time.
+// Returns: { [piId]: { lineItems: [...], discountCode, discountAmount } }
+app.post("/enrich", async (req, res) => {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) return res.status(500).json({ error: "STRIPE_SECRET_KEY not set in Railway Variables." });
+
+  const piIds = (req.body.piIds || []).slice(0, 10); // max 10 per call
+  const headers = { Authorization: `Bearer ${stripeKey}` };
+  const results = {};
+
+  await Promise.all(piIds.map(async (piId) => {
+    try {
+      const sessRes = await fetch(
+        `https://api.stripe.com/v1/checkout/sessions?payment_intent=${piId}&limit=1&expand[]=data.line_items&expand[]=data.total_details.breakdown`,
+        { headers }
+      );
+      const sessData = await sessRes.json();
+      const session = sessData.data?.[0];
+      if (!session) { results[piId] = { lineItems: [], discountCode: null, discountAmount: null }; return; }
+
+      // Line item descriptions
+      const lineItems = (session.line_items?.data || [])
+        .map(i => i.description)
+        .filter(Boolean);
+
+      // Promotion code
+      let discountCode = null, discountAmount = null;
+      for (const d of session.total_details?.breakdown?.discounts || []) {
+        const promoCode = d.discount?.promotion_code;
+        if (promoCode && typeof promoCode === "object" && promoCode.code) {
+          discountCode = promoCode.code;
+          discountAmount = (d.amount || 0) / 100;
+          break;
+        }
+        const couponCode = d.discount?.coupon?.name || d.discount?.coupon?.id;
+        if (couponCode) { discountCode = couponCode; discountAmount = (d.amount || 0) / 100; break; }
+      }
+
+      results[piId] = { lineItems, discountCode, discountAmount };
+    } catch (e) {
+      results[piId] = { lineItems: [], discountCode: null, discountAmount: null };
+    }
+  }));
+
+  res.json(results);
 });
 
 function extractFromInvoiceOrMeta(charge) {
@@ -147,5 +130,5 @@ function extractFromInvoiceOrMeta(charge) {
 }
 
 app.listen(PORT, () => {
-  console.log(`Stripe proxy v15.0 running on port ${PORT}`);
+  console.log(`Stripe proxy v16.0 running on port ${PORT}`);
 });
