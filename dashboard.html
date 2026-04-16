@@ -625,7 +625,7 @@ async function fetchAndRender() {
       if(startingAfter) params.append('starting_after', startingAfter);
 
       const ctrl=new AbortController();
-      const timer=setTimeout(()=>ctrl.abort(),40000); // 40s timeout per page
+      const timer=setTimeout(()=>ctrl.abort(),60000); // 60s timeout per page
       let r;
       try{ r=await fetch(`${PROXY}/charges?${params}`,{signal:ctrl.signal}); }
       finally{ clearTimeout(timer); }
@@ -654,7 +654,7 @@ async function fetchAndRender() {
   // Safety net: discard any charges outside the date range (shouldn't be needed now server filters correctly)
   const filteredCharges = allCharges.filter(c => c.created >= fromTs && c.created <= toTs);
 
-  document.getElementById('load-msg').textContent='Processing payments...';
+  document.getElementById('load-msg').textContent='Categorizing payments...';
 
   try {
     // First pass: normalize all charges using data we already have
@@ -734,85 +734,6 @@ async function fetchAndRender() {
     return;
   }
 
-  // Second pass: enrich direct-checkout charges with checkout session data
-  // (product name + discount code) — done in background in small batches
-  enrichInBackground();
-}
-
-async function enrichInBackground() {
-  // Only enrich charges that have no invoice (direct checkout) and no category yet
-  // or are categorized as 'other' — these are the ones that need checkout session data
-  const toEnrich = payments.filter(p =>
-    p._piId && !p.hasInvoice && (p.category === 'other' || p.confidence === 'unmatched' || !p.discountCode)
-  );
-
-  if (toEnrich.length === 0) return;
-
-  const BATCH = 10; // 10 PI lookups per server call — fast and within timeout
-  const piIdToPayments = {};
-  toEnrich.forEach(p => {
-    if (!piIdToPayments[p._piId]) piIdToPayments[p._piId] = [];
-    piIdToPayments[p._piId].push(p);
-  });
-
-  const uniquePiIds = Object.keys(piIdToPayments);
-  const enrichedCount = { value: 0 };
-
-  // Update loading indicator
-  const updateStatus = () => {
-    const el = document.getElementById('dash-subtitle');
-    if (el && enrichedCount.value < uniquePiIds.length) {
-      const pct = Math.round(enrichedCount.value / uniquePiIds.length * 100);
-      el.textContent = el.textContent.replace(/ · enriching.*$/, '') + ` · enriching ${pct}%`;
-    }
-  };
-
-  for (let i = 0; i < uniquePiIds.length; i += BATCH) {
-    if (fetchCancelled) return;
-    const batch = uniquePiIds.slice(i, i + BATCH);
-    try {
-      const r = await fetch(`${PROXY}/enrich`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ piIds: batch })
-      });
-      if (!r.ok) continue;
-      const enrichData = await r.json();
-
-      // Apply enrichment to matching payments
-      let anyUpdated = false;
-      for (const piId of batch) {
-        const info = enrichData[piId];
-        if (!info) continue;
-        const pmts = piIdToPayments[piId] || [];
-        for (const p of pmts) {
-          p.sessionLineItems = info.lineItems || [];
-          if (info.discountCode) { p.discountCode = info.discountCode; p.discountAmount = info.discountAmount; }
-          // Re-categorize now that we have session line items
-          const prev = p.category;
-          p._rawInvoice = null;
-          const result = categorizePayment(p);
-          Object.assign(p, result);
-          if (p.category !== prev) anyUpdated = true;
-        }
-      }
-      enrichedCount.value += batch.length;
-      updateStatus();
-      // Refresh dashboard charts if categories changed
-      if (anyUpdated) {
-        const from = document.getElementById('date-from').value;
-        const to = document.getElementById('date-to').value;
-        renderDashboard(from, to, payments.length, false);
-      }
-    } catch(e) { /* skip failed batch */ }
-  }
-
-  // Final refresh and clean up status text
-  const from = document.getElementById('date-from').value;
-  const to = document.getElementById('date-to').value;
-  renderDashboard(from, to, payments.length, false);
-  const el = document.getElementById('dash-subtitle');
-  if (el) el.textContent = el.textContent.replace(/ · enriching.*$/, '');
 }
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
