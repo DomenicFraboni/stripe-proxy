@@ -362,17 +362,19 @@ let activeFilters = { status: 'all', category: 'all', membership: 'all' };
 let activeDiscountFilter = 'all'; // 'all' | 'discounted' | 'no-discount' | specific code
 
 // ── Product catalog ──────────────────────────────────────────────────────────
+// amounts are ONLY used as a last resort when all text sources are empty
+// They are not used when any description/invoice text is available
 const COURSE_RULES = [
-  { key:'lifting-for-longevity',   label:'Lifting for Longevity',              color:'#0369a1', keywords:['lifting for longevity','lifting for long','lifting for long'] },
-  { key:'strong-healthy-joints',   label:'Strong Healthy Joints',              color:'#0f766e', keywords:['strong healthy joints','strong, healthy joints','strong healthy joint'] },
-  { key:'posture-redefined',       label:'Posture Redefined',                  color:'#7c3aed', keywords:['posture redefined'] },
-  { key:'mobility-foundations',    label:'Mobility Foundations',               color:'#065f46', keywords:['mobility foundation'] },
-  { key:'pelvic-floor',            label:'Pelvic Floor Foundations',           color:'#9d174d', keywords:['pelvic floor'] },
-  { key:'barefoot',                label:'Barefoot Mini Course',               color:'#92400e', keywords:['barefoot'] },
-  { key:'30-days-release',         label:'30 Days of Release & Recovery',      color:'#b45309', keywords:['30 days of release','release and recovery','release & recovery'] },
-  { key:'30-days-strength',        label:'30 Days of Strength & Mobility',     color:'#d97706', keywords:['30 days of strength','strength and mobility','strength & mobility'] },
-  { key:'move2improve',            label:'Move 2 Improve',                     color:'#166534', keywords:['move 2 improve','move2improve','m2i'] },
-  { key:'grateful',                label:'Grateful for My Body',               color:'#4338ca', keywords:['grateful for my body','grateful for my'] },
+  { key:'lifting-for-longevity',   label:'Lifting for Longevity',              color:'#0369a1', keywords:['lifting for longevity','lifting for long'],           amounts:[65,75,85,95,99] },
+  { key:'strong-healthy-joints',   label:'Strong Healthy Joints',              color:'#0f766e', keywords:['strong healthy joints','strong, healthy joints'],     amounts:[49,53.40,59,69,79] },
+  { key:'posture-redefined',       label:'Posture Redefined',                  color:'#7c3aed', keywords:['posture redefined'],                                  amounts:[69,89] },
+  { key:'mobility-foundations',    label:'Mobility Foundations',               color:'#065f46', keywords:['mobility foundation'],                                amounts:[] },
+  { key:'pelvic-floor',            label:'Pelvic Floor Foundations',           color:'#9d174d', keywords:['pelvic floor'],                                       amounts:[45,55,65] },
+  { key:'barefoot',                label:'Barefoot Mini Course',               color:'#92400e', keywords:['barefoot'],                                           amounts:[30,39] },
+  { key:'30-days-release',         label:'30 Days of Release & Recovery',      color:'#b45309', keywords:['30 days of release','release and recovery','release & recovery'], amounts:[] },
+  { key:'30-days-strength',        label:'30 Days of Strength & Mobility',     color:'#d97706', keywords:['30 days of strength','strength and mobility','strength & mobility'], amounts:[] },
+  { key:'move2improve',            label:'Move 2 Improve',                     color:'#166534', keywords:['move 2 improve','move2improve','m2i'],                amounts:[36] },
+  { key:'grateful',                label:'Grateful for My Body',               color:'#4338ca', keywords:['grateful for my body','grateful for my'],            amounts:[] },
 ];
 const COURSE_KEYS = COURSE_RULES.map(r => r.key);
 
@@ -507,15 +509,27 @@ function categorizePayment(p) {
     if (cat) { category = cat; confidence = 'description'; itemName = p.description; }
   }
 
-  // 4. Amount + invoice-number fallback for subscriptions
-  // Subscription amounts are distinct (non-overlapping with courses at these price points)
-  // so amount matching is safe for subscriptions even without an invoice flag.
-  // A description like "Invoice RVTHCSBU-0004" also strongly signals a subscription.
+  // 4. Amount fallback — only runs when ALL text sources are empty
+  //    (no invoice items, no description, no payment intent text)
+  //    This catches direct-checkout charges where Stripe provides no product name at all.
+  const hasAnyText = (p.invoiceItems && p.invoiceItems.length > 0) ||
+                     (p.sessionLineItems && p.sessionLineItems.length > 0) ||
+                     (p.description && p.description.trim().length > 0);
+
   if (!category) {
-    const descLower = (p.description || '').toLowerCase();
-    const looksLikeInvoice = /^invoice\s+[a-z0-9]+-\d{4}$/i.test(p.description?.trim() || '');
-    if (SUB_AMOUNTS.has(p.amount) || (p.hasInvoice && looksLikeInvoice)) {
+    // Subscription amount matching — safe, amounts are non-overlapping
+    if (SUB_AMOUNTS.has(p.amount)) {
       category = 'subscription'; confidence = 'description';
+    }
+  }
+
+  if (!category && !hasAnyText) {
+    // Course amount matching — only when NO text is available at all
+    // Amounts here are carefully chosen to be unambiguous for each course
+    for (const rule of COURSE_RULES) {
+      if (rule.amounts && rule.amounts.includes(p.amount)) {
+        category = rule.key; confidence = 'description'; break;
+      }
     }
   }
 
