@@ -10,7 +10,7 @@ app.options("*", cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.json({ status: "Stripe proxy is running", version: "17.0" });
+  res.json({ status: "Stripe proxy is running", version: "18.0" });
 });
 
 app.get("/dashboard", (req, res) => {
@@ -27,11 +27,11 @@ app.get("/charges", async (req, res) => {
   if (created && created.lte) params.append("created[lte]", created.lte);
   if (req.query.starting_after) params.append("starting_after", req.query.starting_after);
 
-  // Single Stripe request — no extra lookups, no timeouts
+  // Only expand invoice — removing payment_intent expansion reduces response size significantly
+  // and avoids Stripe rate limits / slow responses that cause client timeouts
   params.append("expand[]", "data.invoice");
   params.append("expand[]", "data.invoice.lines");
   params.append("expand[]", "data.invoice.discount");
-  params.append("expand[]", "data.payment_intent");
 
   try {
     const response = await fetch(`https://api.stripe.com/v1/charges?${params}`, {
@@ -40,7 +40,7 @@ app.get("/charges", async (req, res) => {
     const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
 
-    // Extract discount code from invoice or payment intent metadata
+    // Extract discount from invoice (payment_intent no longer expanded)
     for (const charge of data.data || []) {
       charge._discountCode = extractDiscountCode(charge);
       charge._discountAmount = extractDiscountAmount(charge);
@@ -53,7 +53,6 @@ app.get("/charges", async (req, res) => {
 });
 
 function extractDiscountCode(charge) {
-  // Invoice discount (subscription charges)
   const inv = charge.invoice;
   if (inv && typeof inv === "object") {
     const disc = inv.discount;
@@ -69,15 +68,7 @@ function extractDiscountCode(charge) {
       }
     }
   }
-  // Payment intent metadata (direct checkout charges)
-  const pi = charge.payment_intent;
-  if (pi && typeof pi === "object") {
-    const meta = pi.metadata || {};
-    const code = meta.coupon || meta.discount_code || meta.promo_code ||
-                 meta.coupon_code || meta.discount || null;
-    if (code) return code;
-  }
-  // Charge metadata
+  // Charge-level metadata fallback
   const meta = charge.metadata || {};
   return meta.coupon || meta.discount_code || meta.promo_code || meta.coupon_code || null;
 }
@@ -88,15 +79,9 @@ function extractDiscountAmount(charge) {
     const total = inv.total_discount_amounts.reduce((s, d) => s + (d.amount || 0), 0);
     if (total > 0) return total / 100;
   }
-  const pi = charge.payment_intent;
-  if (pi && typeof pi === "object" &&
-      pi.amount_subtotal != null && pi.amount != null) {
-    const diff = pi.amount_subtotal - pi.amount;
-    if (diff > 0) return diff / 100;
-  }
   return null;
 }
 
 app.listen(PORT, () => {
-  console.log(`Stripe proxy v17.0 running on port ${PORT}`);
+  console.log(`Stripe proxy v18.0 running on port ${PORT}`);
 });
