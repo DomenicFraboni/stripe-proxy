@@ -639,7 +639,7 @@ async function fetchAndRender() {
       if(startingAfter) params.append('starting_after', startingAfter);
 
       const ctrl=new AbortController();
-      const timer=setTimeout(()=>ctrl.abort(),60000); // 60s timeout per page
+      const timer=setTimeout(()=>ctrl.abort(),30000); // 30s timeout per page
       let r;
       try{ r=await fetch(`${PROXY}/charges?${params}`,{signal:ctrl.signal}); }
       finally{ clearTimeout(timer); }
@@ -687,22 +687,13 @@ async function fetchAndRender() {
           }
           if (inv.description) invoiceItems.push(inv.description);
         }
-        const pi = c.payment_intent;
-        if (pi && typeof pi === 'object') {
-          if (pi.description) invoiceItems.push(pi.description);
-          const meta = pi.metadata || {};
-          ['product_name','product','name','item','course','title'].forEach(k => {
-            if (meta[k]) invoiceItems.push(meta[k]);
-          });
-        }
+        // Also check charge metadata for product name
         const cmeta = c.metadata || {};
         ['product_name','product','name','item','course','title'].forEach(k => {
           if (cmeta[k]) invoiceItems.push(cmeta[k]);
         });
 
-        const piDesc = (pi && typeof pi === 'object') ? (pi.description || '') : '';
-        const chargeDesc = c.description || c.statement_descriptor || '';
-        const bestDesc = piDesc || chargeDesc;
+        const bestDesc = c.description || c.statement_descriptor || '';
 
         const p = {
           id:c.id, amount:c.amount/100,
@@ -714,7 +705,6 @@ async function fetchAndRender() {
           hasInvoice:!!(c.invoice),
           invoiceItems,
           _rawInvoice: (inv && typeof inv==='object') ? inv : null,
-          _piId: (pi && typeof pi==='object') ? pi.id : null,
           discountCode: c._discountCode || null,
           discountAmount: c._discountAmount || null,
           sessionLineItems: [],
@@ -729,7 +719,7 @@ async function fetchAndRender() {
           id:c.id||'unknown', amount:(c.amount||0)/100, currency:'USD',
           status:c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
           description:c.description||'', email:'', date:new Date((c.created||0)*1000),
-          hasInvoice:false, invoiceItems:[], sessionLineItems:[], _piId:null, category:'other',
+          hasInvoice:false, invoiceItems:[], sessionLineItems:[], category:'other',
           confidence:'unmatched', itemName:'', interval:null, billingReason:null, invoiceSeq:null,
           discountCode:null, discountAmount:null,
         };
