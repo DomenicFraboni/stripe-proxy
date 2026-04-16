@@ -647,9 +647,10 @@ async function fetchAndRender() {
   // Safety net: discard any charges outside the date range (shouldn't be needed now server filters correctly)
   const filteredCharges = allCharges.filter(c => c.created >= fromTs && c.created <= toTs);
 
-  document.getElementById('load-msg').textContent='Categorizing payments...';
+  document.getElementById('load-msg').textContent='Processing payments...';
 
   try {
+    // First pass: normalize all charges using data we already have
     payments = filteredCharges.map(c => {
       try {
         const invoiceItems = [];
@@ -665,11 +666,6 @@ async function fetchAndRender() {
           }
           if (inv.description) invoiceItems.push(inv.description);
         }
-
-        // For direct checkout (Payment Intent) charges, extract product name from:
-        // 1. payment_intent.description
-        // 2. payment_intent.metadata (product_name, name, item, course, product)
-        // 3. charge metadata
         const pi = c.payment_intent;
         if (pi && typeof pi === 'object') {
           if (pi.description) invoiceItems.push(pi.description);
@@ -678,13 +674,11 @@ async function fetchAndRender() {
             if (meta[k]) invoiceItems.push(meta[k]);
           });
         }
-        // Also check charge-level metadata
         const cmeta = c.metadata || {};
         ['product_name','product','name','item','course','title'].forEach(k => {
           if (cmeta[k]) invoiceItems.push(cmeta[k]);
         });
 
-        // Build the best description: prefer payment_intent.description over charge description
         const piDesc = (pi && typeof pi === 'object') ? (pi.description || '') : '';
         const chargeDesc = c.description || c.statement_descriptor || '';
         const bestDesc = piDesc || chargeDesc;
@@ -699,9 +693,10 @@ async function fetchAndRender() {
           hasInvoice:!!(c.invoice),
           invoiceItems,
           _rawInvoice: (inv && typeof inv==='object') ? inv : null,
+          _piId: (pi && typeof pi==='object') ? pi.id : null,
           discountCode: c._discountCode || null,
           discountAmount: c._discountAmount || null,
-          sessionLineItems: c._lineItems || [],
+          sessionLineItems: [],
           category:'other', confidence:'unmatched', itemName:'', interval:null, billingReason:null, invoiceSeq:null,
         };
         const result = categorizePayment(p);
@@ -709,20 +704,22 @@ async function fetchAndRender() {
         delete p._rawInvoice;
         return p;
       } catch(itemErr) {
-        // If one charge fails to parse, return a safe fallback rather than crashing the whole batch
         return {
           id:c.id||'unknown', amount:(c.amount||0)/100, currency:'USD',
           status:c.refunded?'refunded':(c.status==='failed'?'failed':'succeeded'),
           description:c.description||'', email:'', date:new Date((c.created||0)*1000),
-          hasInvoice:false, invoiceItems:[], category:'other',
+          hasInvoice:false, invoiceItems:[], sessionLineItems:[], _piId:null, category:'other',
           confidence:'unmatched', itemName:'', interval:null, billingReason:null, invoiceSeq:null,
+          discountCode:null, discountAmount:null,
         };
       }
     });
 
+    // Show dashboard immediately with what we have so far
     renderDashboard(from, to, filteredCharges.length, false);
+    show('screen-dash');
+
   } catch(renderErr) {
-    // Show the error on the connect screen so user knows what went wrong
     show('screen-connect');
     const errEl=document.getElementById('connect-error');
     errEl.innerHTML=`<div class="error-box"><strong>Error building dashboard:</strong> ${renderErr.message}</div>`;
@@ -730,7 +727,85 @@ async function fetchAndRender() {
     return;
   }
 
-  show('screen-dash');
+  // Second pass: enrich direct-checkout charges with checkout session data
+  // (product name + discount code) — done in background in small batches
+  enrichInBackground();
+}
+
+async function enrichInBackground() {
+  // Only enrich charges that have no invoice (direct checkout) and no category yet
+  // or are categorized as 'other' — these are the ones that need checkout session data
+  const toEnrich = payments.filter(p =>
+    p._piId && !p.hasInvoice && (p.category === 'other' || p.confidence === 'unmatched' || !p.discountCode)
+  );
+
+  if (toEnrich.length === 0) return;
+
+  const BATCH = 10; // 10 PI lookups per server call — fast and within timeout
+  const piIdToPayments = {};
+  toEnrich.forEach(p => {
+    if (!piIdToPayments[p._piId]) piIdToPayments[p._piId] = [];
+    piIdToPayments[p._piId].push(p);
+  });
+
+  const uniquePiIds = Object.keys(piIdToPayments);
+  const enrichedCount = { value: 0 };
+
+  // Update loading indicator
+  const updateStatus = () => {
+    const el = document.getElementById('dash-subtitle');
+    if (el && enrichedCount.value < uniquePiIds.length) {
+      const pct = Math.round(enrichedCount.value / uniquePiIds.length * 100);
+      el.textContent = el.textContent.replace(/ · enriching.*$/, '') + ` · enriching ${pct}%`;
+    }
+  };
+
+  for (let i = 0; i < uniquePiIds.length; i += BATCH) {
+    if (fetchCancelled) return;
+    const batch = uniquePiIds.slice(i, i + BATCH);
+    try {
+      const r = await fetch(`${PROXY}/enrich`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ piIds: batch })
+      });
+      if (!r.ok) continue;
+      const enrichData = await r.json();
+
+      // Apply enrichment to matching payments
+      let anyUpdated = false;
+      for (const piId of batch) {
+        const info = enrichData[piId];
+        if (!info) continue;
+        const pmts = piIdToPayments[piId] || [];
+        for (const p of pmts) {
+          p.sessionLineItems = info.lineItems || [];
+          if (info.discountCode) { p.discountCode = info.discountCode; p.discountAmount = info.discountAmount; }
+          // Re-categorize now that we have session line items
+          const prev = p.category;
+          p._rawInvoice = null;
+          const result = categorizePayment(p);
+          Object.assign(p, result);
+          if (p.category !== prev) anyUpdated = true;
+        }
+      }
+      enrichedCount.value += batch.length;
+      updateStatus();
+      // Refresh dashboard charts if categories changed
+      if (anyUpdated) {
+        const from = document.getElementById('date-from').value;
+        const to = document.getElementById('date-to').value;
+        renderDashboard(from, to, payments.length, false);
+      }
+    } catch(e) { /* skip failed batch */ }
+  }
+
+  // Final refresh and clean up status text
+  const from = document.getElementById('date-from').value;
+  const to = document.getElementById('date-to').value;
+  renderDashboard(from, to, payments.length, false);
+  const el = document.getElementById('dash-subtitle');
+  if (el) el.textContent = el.textContent.replace(/ · enriching.*$/, '');
 }
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
