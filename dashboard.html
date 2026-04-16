@@ -507,9 +507,16 @@ function categorizePayment(p) {
     if (cat) { category = cat; confidence = 'description'; itemName = p.description; }
   }
 
-  // 4. Amount fallback — subscriptions only (course amounts overlap too much to be reliable)
-  if (!category && SUB_AMOUNTS.has(p.amount) && p.hasInvoice) {
-    category = 'subscription'; confidence = 'description';
+  // 4. Amount + invoice-number fallback for subscriptions
+  // Subscription amounts are distinct (non-overlapping with courses at these price points)
+  // so amount matching is safe for subscriptions even without an invoice flag.
+  // A description like "Invoice RVTHCSBU-0004" also strongly signals a subscription.
+  if (!category) {
+    const descLower = (p.description || '').toLowerCase();
+    const looksLikeInvoice = /^invoice\s+[a-z0-9]+-\d{4}$/i.test(p.description?.trim() || '');
+    if (SUB_AMOUNTS.has(p.amount) || (p.hasInvoice && looksLikeInvoice)) {
+      category = 'subscription'; confidence = 'description';
+    }
   }
 
   if (!category) category = 'other';
