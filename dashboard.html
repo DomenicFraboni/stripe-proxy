@@ -755,49 +755,36 @@ async function fetchAndRender() {
 }
 
 async function enrichUncategorized() {
-  // Only enrich succeeded charges still marked 'other' with a payment intent ID
-  // Cap at 60 total to keep enrichment fast — covers typical uncategorized counts
-  // Enrich charges that need checkout session data:
-  // 1. Still uncategorized (category === 'other')
-  // 2. Categorized by ambiguous amount (tentative, may be wrong)
-  // 3. Have a discount code that looks like a raw Stripe ID rather than human-readable
-  //    (raw IDs: random alphanumeric like '5gZTafWc', '53.01' — readable: 'LIFT', 'BACK99')
-  function looksLikeRawId(code) {
-    if (!code) return false;
-    // Human-readable promo codes: all uppercase, letters/numbers only, <=15 chars (e.g. LIFT, BACK99, SAVE20)
-    // Raw Stripe coupon IDs: mixed case random alphanumeric (5gZTafWc, ogG23J7I) or decimals (53.01)
-    if (/^[A-Z0-9_-]{1,15}$/.test(code)) return false; // looks like a human-typed code
-    return true; // mixed case or unusual format = raw Stripe ID
-  }
+  // Enrich ALL direct-checkout charges (no invoice) — no cap.
+  // These need the checkout session for product name + promotion code (e.g. "LIFT").
+  // Processed in sequential batches of 10 so we never timeout.
+  const toEnrich = payments.filter(p => p.status === 'succeeded' && p._piId && !p.hasInvoice);
 
-  const uncategorized = payments
-    .filter(p => p.status === 'succeeded' && p._piId &&
-      (p.category === 'other' ||
-       p.ambiguousAmount === true ||
-       looksLikeRawId(p.discountCode)))
-    .slice(0, 200);
-
-  if (uncategorized.length === 0) return;
-
-  const subtitleEl = document.getElementById('dash-subtitle');
-  const originalSubtitle = subtitleEl ? subtitleEl.textContent : '';
-  if (subtitleEl) subtitleEl.textContent = originalSubtitle + ' · identifying ' + uncategorized.length + ' more...';
+  if (toEnrich.length === 0) return;
 
   // De-duplicate by payment intent ID
   const piMap = {};
-  uncategorized.forEach(p => {
+  toEnrich.forEach(p => {
     if (!piMap[p._piId]) piMap[p._piId] = [];
     piMap[p._piId].push(p);
   });
 
   const piIds = Object.keys(piMap);
-  const BATCH = 10; // 10 checkout session lookups per request
+  const BATCH = 10;
+  const subtitleEl = document.getElementById('dash-subtitle');
+  const originalSubtitle = subtitleEl ? subtitleEl.textContent : '';
 
   for (let i = 0; i < piIds.length; i += BATCH) {
     if (fetchCancelled) break;
+
+    // Show live progress
+    if (subtitleEl) {
+      const pct = Math.round(i / piIds.length * 100);
+      subtitleEl.textContent = originalSubtitle + ` · loading discount codes ${pct}%`;
+    }
+
     const batch = piIds.slice(i, i + BATCH);
     try {
-      // Per-batch timeout — if one batch stalls, skip it and move on
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 15000);
       let r;
@@ -818,17 +805,14 @@ async function enrichUncategorized() {
       for (const piId of batch) {
         const info = enrichData[piId];
         if (!info) continue;
-        const pmts = piMap[piId] || [];
-        for (const p of pmts) {
+        for (const p of (piMap[piId] || [])) {
           if (info.lineItems && info.lineItems.length > 0) p.sessionLineItems = info.lineItems;
-          // Always prefer the session discount code (human-readable) over the raw invoice coupon ID
           if (info.discountCode) {
             p.discountCode = info.discountCode;
             p.discountAmount = info.discountAmount;
-            anyUpdated = true; // discount code updated — refresh the filter buttons
+            anyUpdated = true;
           }
           const prev = p.category;
-          // Temporarily clear ambiguousAmount so re-categorization can use session items
           p.ambiguousAmount = false;
           const result = categorizePayment(p);
           Object.assign(p, result);
@@ -842,10 +826,15 @@ async function enrichUncategorized() {
         populateDiscountButtons();
         renderDashboard(from, to, payments.length, false);
       }
-    } catch(e) { /* skip timed-out or failed batch silently */ }
+    } catch(e) { /* skip timed-out batch and continue with next */ }
   }
 
+  // Final render and cleanup
   if (subtitleEl) subtitleEl.textContent = originalSubtitle;
+  const from = document.getElementById('date-from').value;
+  const to = document.getElementById('date-to').value;
+  populateDiscountButtons();
+  renderDashboard(from, to, payments.length, false);
 }
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
