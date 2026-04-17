@@ -365,7 +365,7 @@ let activeDiscountFilter = 'all'; // 'all' | 'discounted' | 'no-discount' | spec
 // uniqueAmounts: safe for direct matching (only appear in this one course)
 // allAmounts: full set including ambiguous — used when text matching confirms the course
 const COURSE_RULES = [
-  { key:'lifting-for-longevity',   label:'Lifting for Longevity',              color:'#0369a1', keywords:['lifting for longevity','lifting for long'],                          uniqueAmounts:[70,75,80,95],    allAmounts:[65,70,75,80,85,95,99] },
+  { key:'lifting-for-longevity',   label:'Lifting for Longevity',              color:'#0369a1', keywords:['lifting for longevity','lifting for long'],                          uniqueAmounts:[60,70,75,80,95], allAmounts:[60,65,70,75,80,85,95,99] },
   { key:'strong-healthy-joints',   label:'Strong Healthy Joints',              color:'#0f766e', keywords:['strong healthy joints','strong, healthy joints'],                    uniqueAmounts:[53.40,59.40],    allAmounts:[49,53.40,59,59.40,69,79] },
   { key:'posture-redefined',       label:'Posture Redefined',                  color:'#7c3aed', keywords:['posture redefined'],                                                 uniqueAmounts:[],               allAmounts:[69,89] },
   { key:'mobility-foundations',    label:'Mobility Foundations',               color:'#065f46', keywords:['mobility foundation'],                                               uniqueAmounts:[],               allAmounts:[69,79,85,89,99] },
@@ -373,8 +373,8 @@ const COURSE_RULES = [
   { key:'barefoot',                label:'Barefoot Mini Course',               color:'#92400e', keywords:['barefoot'],                                                          uniqueAmounts:[30,39],          allAmounts:[30,39,45,55,65] },
   { key:'30-days-release',         label:'30 Days of Release & Recovery',      color:'#b45309', keywords:['30 days of release','release and recovery','release & recovery'],    uniqueAmounts:[],               allAmounts:[59,69,79,89] },
   { key:'30-days-strength',        label:'30 Days of Strength & Mobility',     color:'#d97706', keywords:['30 days of strength','strength and mobility','strength & mobility'], uniqueAmounts:[],               allAmounts:[89] },
-  { key:'move2improve',            label:'Move 2 Improve',                     color:'#166534', keywords:['move 2 improve','move2improve','m2i'],                               uniqueAmounts:[35,36],          allAmounts:[35,36,45,49,59,60,79] },
-  { key:'grateful',                label:'Grateful for My Body',               color:'#4338ca', keywords:['grateful for my body','grateful for my'],                           uniqueAmounts:[],               allAmounts:[45,60] },
+  { key:'move2improve',            label:'Move 2 Improve',                     color:'#166534', keywords:['move 2 improve','move2improve','m2i'],                               uniqueAmounts:[35,36],          allAmounts:[35,36,45,49,59,79] },
+  { key:'grateful',                label:'Grateful for My Body',               color:'#4338ca', keywords:['grateful for my body','grateful for my'],                           uniqueAmounts:[],               allAmounts:[45] },
 ];
 const COURSE_KEYS = COURSE_RULES.map(r => r.key);
 
@@ -762,7 +762,7 @@ async function enrichUncategorized() {
   const uncategorized = payments
     .filter(p => p.status === 'succeeded' && p._piId &&
       (p.category === 'other' || p.ambiguousAmount === true))
-    .slice(0, 60);
+    .slice(0, 200);
 
   if (uncategorized.length === 0) return;
 
@@ -778,7 +778,7 @@ async function enrichUncategorized() {
   });
 
   const piIds = Object.keys(piMap);
-  const BATCH = 5; // Small batches — 5 checkout session lookups per request
+  const BATCH = 10; // 10 checkout session lookups per request
 
   for (let i = 0; i < piIds.length; i += BATCH) {
     if (fetchCancelled) break;
