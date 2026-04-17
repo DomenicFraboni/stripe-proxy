@@ -801,6 +801,12 @@ async function enrichUncategorized() {
       if (!r || !r.ok) continue;
       const enrichData = await r.json();
 
+      // DEBUG: log first batch results to console so we can see what's coming back
+      if (i === 0) {
+        console.log('[Enrich] First batch results:', JSON.stringify(enrichData, null, 2));
+        console.log('[Enrich] Total to enrich:', piIds.length);
+      }
+
       let anyUpdated = false;
       for (const piId of batch) {
         const info = enrichData[piId];
