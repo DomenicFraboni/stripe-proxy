@@ -764,11 +764,10 @@ async function enrichUncategorized() {
   //    (raw IDs: random alphanumeric like '5gZTafWc', '53.01' — readable: 'LIFT', 'BACK99')
   function looksLikeRawId(code) {
     if (!code) return false;
-    // Human-readable codes are typically uppercase letters/numbers, often short
-    // Raw Stripe coupon IDs are mixed case random strings or decimals
-    const upper = code.toUpperCase();
-    if (code === upper && code.length <= 12 && /^[A-Z0-9_-]+$/.test(code)) return false; // looks readable
-    return true; // looks like a raw ID
+    // Human-readable promo codes: all uppercase, letters/numbers only, <=15 chars (e.g. LIFT, BACK99, SAVE20)
+    // Raw Stripe coupon IDs: mixed case random alphanumeric (5gZTafWc, ogG23J7I) or decimals (53.01)
+    if (/^[A-Z0-9_-]{1,15}$/.test(code)) return false; // looks like a human-typed code
+    return true; // mixed case or unusual format = raw Stripe ID
   }
 
   const uncategorized = payments
