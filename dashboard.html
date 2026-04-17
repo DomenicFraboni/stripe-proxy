@@ -642,11 +642,7 @@ async function fetchAndRender() {
       });
       if(startingAfter) params.append('starting_after', startingAfter);
 
-      const ctrl=new AbortController();
-      const timer=setTimeout(()=>ctrl.abort(),30000); // 30s timeout per page
-      let r;
-      try{ r=await fetch(`${PROXY}/charges?${params}`,{signal:ctrl.signal}); }
-      finally{ clearTimeout(timer); }
+      const r=await fetch(`${PROXY}/charges?${params}`);
       if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Server error '+r.status);}
       const data=await r.json();
       if(data.error) throw new Error(data.error);
@@ -750,22 +746,19 @@ async function fetchAndRender() {
 }
 
 async function enrichUncategorized() {
-  // Collect payment intent IDs only for charges that are still 'other'
-  // and have no invoice (direct checkout purchases with blank description)
-  const uncategorized = payments.filter(p =>
-    p.category === 'other' &&
-    p.status === 'succeeded' &&
-    p._piId
-  );
+  // Only enrich succeeded charges still marked 'other' with a payment intent ID
+  // Cap at 60 total to keep enrichment fast — covers typical uncategorized counts
+  const uncategorized = payments
+    .filter(p => p.category === 'other' && p.status === 'succeeded' && p._piId)
+    .slice(0, 60);
 
   if (uncategorized.length === 0) return;
 
-  // Update subtitle to show enrichment is happening
   const subtitleEl = document.getElementById('dash-subtitle');
   const originalSubtitle = subtitleEl ? subtitleEl.textContent : '';
   if (subtitleEl) subtitleEl.textContent = originalSubtitle + ' · identifying ' + uncategorized.length + ' more...';
 
-  // Group by payment intent ID (de-duplicate)
+  // De-duplicate by payment intent ID
   const piMap = {};
   uncategorized.forEach(p => {
     if (!piMap[p._piId]) piMap[p._piId] = [];
@@ -773,18 +766,27 @@ async function enrichUncategorized() {
   });
 
   const piIds = Object.keys(piMap);
-  const BATCH = 20; // up to 20 at a time — targeted so this is fast
+  const BATCH = 5; // Small batches — 5 checkout session lookups per request
 
   for (let i = 0; i < piIds.length; i += BATCH) {
     if (fetchCancelled) break;
     const batch = piIds.slice(i, i + BATCH);
     try {
-      const r = await fetch(`${PROXY}/enrich`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ piIds: batch })
-      });
-      if (!r.ok) continue;
+      // Per-batch timeout — if one batch stalls, skip it and move on
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 15000);
+      let r;
+      try {
+        r = await fetch(`${PROXY}/enrich`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ piIds: batch }),
+          signal: ctrl.signal
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+      if (!r || !r.ok) continue;
       const enrichData = await r.json();
 
       let anyUpdated = false;
@@ -793,14 +795,8 @@ async function enrichUncategorized() {
         if (!info) continue;
         const pmts = piMap[piId] || [];
         for (const p of pmts) {
-          if (info.lineItems && info.lineItems.length > 0) {
-            p.sessionLineItems = info.lineItems;
-          }
-          if (info.discountCode) {
-            p.discountCode = info.discountCode;
-            p.discountAmount = info.discountAmount;
-          }
-          // Re-categorize with the new session line items
+          if (info.lineItems && info.lineItems.length > 0) p.sessionLineItems = info.lineItems;
+          if (info.discountCode) { p.discountCode = info.discountCode; p.discountAmount = info.discountAmount; }
           const prev = p.category;
           const result = categorizePayment(p);
           Object.assign(p, result);
@@ -814,10 +810,9 @@ async function enrichUncategorized() {
         populateDiscountButtons();
         renderDashboard(from, to, payments.length, false);
       }
-    } catch(e) { /* skip failed batch silently */ }
+    } catch(e) { /* skip timed-out or failed batch silently */ }
   }
 
-  // Clean up subtitle
   if (subtitleEl) subtitleEl.textContent = originalSubtitle;
 }
 
