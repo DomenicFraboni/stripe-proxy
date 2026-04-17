@@ -512,9 +512,13 @@ function categorizePayment(p) {
   // 4. Amount fallback — only runs when ALL text sources are empty
   //    (no invoice items, no description, no payment intent text)
   //    This catches direct-checkout charges where Stripe provides no product name at all.
+  // Only count description as "text" if it might contain a product name
+  // (not generic values like 'JEN HEALTH' which is just the statement descriptor)
+  const descHasProductHint = p.description && p.description.trim().length > 0 &&
+    !['jen health','jen health ','statement descriptor'].includes(p.description.trim().toLowerCase());
   const hasAnyText = (p.invoiceItems && p.invoiceItems.length > 0) ||
                      (p.sessionLineItems && p.sessionLineItems.length > 0) ||
-                     (p.description && p.description.trim().length > 0);
+                     descHasProductHint;
 
   if (!category) {
     // Subscription amount matching — safe, amounts are non-overlapping
@@ -693,7 +697,8 @@ async function fetchAndRender() {
           if (cmeta[k]) invoiceItems.push(cmeta[k]);
         });
 
-        const bestDesc = c.description || c.statement_descriptor || '';
+        // Only use actual description, never statement_descriptor (that's always 'JEN HEALTH')
+        const bestDesc = c.description || '';
 
         const p = {
           id:c.id, amount:c.amount/100,
@@ -750,7 +755,6 @@ async function enrichUncategorized() {
   const uncategorized = payments.filter(p =>
     p.category === 'other' &&
     p.status === 'succeeded' &&
-    !p.hasInvoice &&
     p._piId
   );
 
