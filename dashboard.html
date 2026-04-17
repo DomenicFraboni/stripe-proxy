@@ -757,11 +757,25 @@ async function fetchAndRender() {
 async function enrichUncategorized() {
   // Only enrich succeeded charges still marked 'other' with a payment intent ID
   // Cap at 60 total to keep enrichment fast — covers typical uncategorized counts
-  // Enrich: charges still 'other' OR categorized only by ambiguous amount matching
-  // Ambiguous amount matches are tentative and can be overridden by the checkout session
+  // Enrich charges that need checkout session data:
+  // 1. Still uncategorized (category === 'other')
+  // 2. Categorized by ambiguous amount (tentative, may be wrong)
+  // 3. Have a discount code that looks like a raw Stripe ID rather than human-readable
+  //    (raw IDs: random alphanumeric like '5gZTafWc', '53.01' — readable: 'LIFT', 'BACK99')
+  function looksLikeRawId(code) {
+    if (!code) return false;
+    // Human-readable codes are typically uppercase letters/numbers, often short
+    // Raw Stripe coupon IDs are mixed case random strings or decimals
+    const upper = code.toUpperCase();
+    if (code === upper && code.length <= 12 && /^[A-Z0-9_-]+$/.test(code)) return false; // looks readable
+    return true; // looks like a raw ID
+  }
+
   const uncategorized = payments
     .filter(p => p.status === 'succeeded' && p._piId &&
-      (p.category === 'other' || p.ambiguousAmount === true))
+      (p.category === 'other' ||
+       p.ambiguousAmount === true ||
+       looksLikeRawId(p.discountCode)))
     .slice(0, 200);
 
   if (uncategorized.length === 0) return;
@@ -808,7 +822,12 @@ async function enrichUncategorized() {
         const pmts = piMap[piId] || [];
         for (const p of pmts) {
           if (info.lineItems && info.lineItems.length > 0) p.sessionLineItems = info.lineItems;
-          if (info.discountCode) { p.discountCode = info.discountCode; p.discountAmount = info.discountAmount; }
+          // Always prefer the session discount code (human-readable) over the raw invoice coupon ID
+          if (info.discountCode) {
+            p.discountCode = info.discountCode;
+            p.discountAmount = info.discountAmount;
+            anyUpdated = true; // discount code updated — refresh the filter buttons
+          }
           const prev = p.category;
           // Temporarily clear ambiguousAmount so re-categorization can use session items
           p.ambiguousAmount = false;
