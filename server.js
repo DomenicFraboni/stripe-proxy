@@ -10,7 +10,7 @@ app.options("*", cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.json({ status: "Stripe proxy is running", version: "20.0" });
+  res.json({ status: "Stripe proxy is running", version: "21.0" });
 });
 
 app.get("/dashboard", (req, res) => {
@@ -27,12 +27,14 @@ app.get("/charges", async (req, res) => {
   if (created && created.lte) params.append("created[lte]", created.lte);
   if (req.query.starting_after) params.append("starting_after", req.query.starting_after);
 
+  // Stay within Stripe's 4-level expand limit
+  // data.invoice.lines = 3 levels (safe)
+  // data.invoice.discount = 3 levels (safe)
+  // data.invoice.discount.promotion_code = 4 levels (at the limit — can cause errors)
+  // So we fetch promotion_code separately in extractDiscount below
   params.append("expand[]", "data.invoice");
   params.append("expand[]", "data.invoice.lines");
-  // Expand discount AND its promotion_code so we get the human-readable code (e.g. "LIFT")
-  // This is exactly 4 levels: data -> invoice -> discount -> promotion_code
   params.append("expand[]", "data.invoice.discount");
-  params.append("expand[]", "data.invoice.discount.promotion_code");
 
   try {
     const response = await fetch(`https://api.stripe.com/v1/charges?${params}`, {
@@ -53,8 +55,8 @@ app.get("/charges", async (req, res) => {
   }
 });
 
-// Enrich endpoint — for direct checkout charges (no invoice)
-// Fetches checkout session to get line items + promotion code
+// Enrich endpoint — fetches checkout session for direct-checkout charges
+// Gets: line item product names + human-readable promotion codes (e.g. "LIFT")
 app.post("/enrich", async (req, res) => {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) return res.status(500).json({ error: "STRIPE_SECRET_KEY not set." });
@@ -72,20 +74,21 @@ app.post("/enrich", async (req, res) => {
       );
       const sessData = await sessRes.json();
       const session = sessData.data?.[0];
-      if (!session) { results[piId] = { lineItems: [], discountCode: null, discountAmount: null }; return; }
+      if (!session) {
+        results[piId] = { lineItems: [], discountCode: null, discountAmount: null };
+        return;
+      }
 
       const lineItems = (session.line_items?.data || []).map(i => i.description).filter(Boolean);
 
       let discountCode = null, discountAmount = null;
       for (const d of session.total_details?.breakdown?.discounts || []) {
         const promo = d.discount?.promotion_code;
-        // promotion_code is expanded here so .code is available
         if (promo && typeof promo === "object" && promo.code) {
           discountCode = promo.code;
           discountAmount = (d.amount || 0) / 100;
           break;
         }
-        // Fallback: coupon name
         const coupon = d.discount?.coupon?.name || d.discount?.coupon?.id;
         if (coupon) { discountCode = coupon; discountAmount = (d.amount || 0) / 100; break; }
       }
@@ -104,35 +107,29 @@ function extractDiscount(charge) {
   if (inv && typeof inv === "object") {
     const disc = inv.discount;
     if (disc && typeof disc === "object") {
-      // promotion_code is now expanded — .code is the human-readable code like "LIFT"
-      const promoCode = disc.promotion_code?.code || null;
-      // coupon.name is the display name set in Stripe dashboard
+      // promotion_code comes back as a string ID (not expanded to avoid 4-level limit)
+      // We use coupon.name as the readable label for subscription discounts
+      // Direct checkout readable codes are fetched via /enrich from checkout sessions
       const couponName = disc.coupon?.name || null;
-      // coupon.id is the internal ID (last resort)
       const couponId = disc.coupon?.id || null;
-      const code = promoCode || couponName || couponId;
+      const code = couponName || couponId;
       if (code) {
         const amount = disc.coupon?.amount_off
           ? disc.coupon.amount_off / 100
-          : disc.coupon?.percent_off
-          ? null
           : null;
         return { code, amount };
       }
     }
-    // Also check total_discount_amounts which has the applied discount amount
     if (inv.total_discount_amounts?.length > 0) {
       const d = inv.total_discount_amounts[0];
       if (d.discount && typeof d.discount === "object") {
-        const promoCode = d.discount.promotion_code?.code || null;
         const couponName = d.discount.coupon?.name || null;
         const couponId = d.discount.coupon?.id || null;
-        const code = promoCode || couponName || couponId;
+        const code = couponName || couponId;
         if (code) return { code, amount: (d.amount || 0) / 100 };
       }
     }
   }
-  // Charge metadata fallback
   const meta = charge.metadata || {};
   const code = meta.coupon || meta.discount_code || meta.promo_code || meta.coupon_code || null;
   if (code) return { code, amount: null };
@@ -140,5 +137,5 @@ function extractDiscount(charge) {
 }
 
 app.listen(PORT, () => {
-  console.log(`Stripe proxy v20.0 running on port ${PORT}`);
+  console.log(`Stripe proxy v21.0 running on port ${PORT}`);
 });
