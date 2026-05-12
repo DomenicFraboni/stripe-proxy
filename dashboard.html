@@ -689,9 +689,11 @@ async function fetchAndRender() {
           const lines = inv.lines;
           if (lines && lines.data) {
             lines.data.forEach(line => {
+              // line.description is null for subscription line items — use plan.name instead
               if (line.description) invoiceItems.push(line.description);
-              if (line.price?.nickname) invoiceItems.push(line.price.nickname);
+              if (line.plan?.name) invoiceItems.push(line.plan.name);       // e.g. "Jen Annual Membership"
               if (line.plan?.nickname) invoiceItems.push(line.plan.nickname);
+              if (line.price?.nickname) invoiceItems.push(line.price.nickname);
             });
           }
           if (inv.description) invoiceItems.push(inv.description);
