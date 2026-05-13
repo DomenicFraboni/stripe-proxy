@@ -31,7 +31,8 @@ app.get("/charges", async (req, res) => {
   params.append("expand[]", "data.invoice");
   params.append("expand[]", "data.invoice.lines");
   params.append("expand[]", "data.invoice.discount");
-  params.append("expand[]", "data.discount"); // charge-level discount (used in direct checkout)
+  // Note: data.discount cannot be expanded on charges — charge-level discounts
+  // are fetched via the /enrich endpoint (checkout session lookup)
 
   try {
     const response = await fetch(`https://api.stripe.com/v1/charges?${params}`, {
@@ -168,5 +169,5 @@ function extractDiscount(charge) {
 }
 
 app.listen(PORT, () => {
-  console.log(`Stripe proxy v22.0 running on port ${PORT}`);
+  console.log(`Stripe proxy v23.0 running on port ${PORT}`);
 });
